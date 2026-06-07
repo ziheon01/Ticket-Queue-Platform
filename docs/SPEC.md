@@ -64,6 +64,7 @@ USER (일반 유저)
 - 입장 후 구역 선택 + 수량 선택 (1~4장)
 - Redis 원자적 선점 (SET NX + DECRBY)
 - 선점 후 결제 타이머 5분 시작 (Redis TTL)
+- 결제 시간 연장: 1분 이하 남았을 때 1회에 한해 5분 연장 가능 (Redis EXPIRE)
 - 토스페이먼츠 결제 요청
 - 결제 완료 Webhook 수신 → 예매 확정
 - 타이머 만료 시 선점 해제 + 재고 복구 + 다음 대기자 입장
@@ -123,6 +124,18 @@ USER (일반 유저)
 → WebSocket으로 해당 유저에게 만료 알림
 ```
 
+### 결제 시간 연장 플로우
+
+```
+결제 타이머 1분 이하 남음
+→ WebSocket으로 "결제 시간 연장" 팝업 알림
+→ 유저가 연장 요청 (POST /api/reservations/:id/extend)
+→ 연장 가능 여부 확인 (이미 연장한 경우 거부)
+→ Redis EXPIRE로 TTL 5분 재설정
+→ reservation.extendedAt 기록 (연장 이력)
+→ WebSocket으로 연장된 타이머 전송
+```
+
 ---
 
 ## 5. 데이터 모델 (초안)
@@ -151,6 +164,7 @@ Concert
 - concertDate (공연 날짜)
 - saleStartAt (판매 시작 시간)
 - status (enum: SCHEDULED | ON_SALE | SOLD_OUT | ENDED)
+  → Cron 배치로 자동 업데이트 (매 분 saleStartAt 체크)
 - createdAt / updatedAt
 
 ConcertZone
@@ -159,7 +173,7 @@ ConcertZone
 - name (예: VIP, R, S)
 - price
 - totalQuantity
-- remainQuantity
+- remainQuantity   ← DB 최종 확정값 (Redis와 이중 관리)
 - createdAt / updatedAt
 
 Reservation
@@ -169,7 +183,16 @@ Reservation
 - quantity (1~4)
 - totalPrice
 - status (enum: PENDING | CONFIRMED | CANCELLED | EXPIRED)
-- paymentKey (토스페이먼츠 결제 키, nullable)
+- extendedAt (결제 시간 연장 시각, nullable — 연장 1회 제한 체크용)
+- createdAt / updatedAt
+
+Payment
+- id
+- reservationId (FK, unique)
+- paymentKey (토스페이먼츠 결제 키)
+- amount
+- status (enum: READY | DONE | CANCELLED | FAILED)
+- paidAt (nullable)
 - createdAt / updatedAt
 ```
 
@@ -196,11 +219,11 @@ queue:{concertId}:reconnect:{userId}
 구역 재고
 zone:{concertZoneId}:stock
 → String (숫자)
-→ 남은 재고 수량
+→ 남은 재고 수량 (Redis 실시간값, DB와 이중 관리)
 
 선점 락
 zone:{concertZoneId}:lock:{userId}
-→ String, TTL = 5분
+→ String, TTL = 5분 (연장 시 EXPIRE로 재설정)
 → 결제 진행 중 선점 상태
 ```
 
@@ -243,15 +266,16 @@ GET    /api/queue/:concertId/status
 
 ### 예매
 ```
-POST   /api/reservations
-GET    /api/reservations
-GET    /api/reservations/:id
-DELETE /api/reservations/:id
+POST   /api/reservations                  예매 생성 (구역 선점)
+GET    /api/reservations                  내 예매 목록
+GET    /api/reservations/:id              예매 상세
+DELETE /api/reservations/:id              예매 취소
+POST   /api/reservations/:id/extend       결제 시간 연장 (1회 한정)
 ```
 
 ### 결제 Webhook
 ```
-POST   /api/payments/webhook
+POST   /api/payments/webhook              토스페이먼츠 결제 결과 수신
 ```
 
 ### WebSocket 이벤트
@@ -264,6 +288,8 @@ queue:reconnect    재연결 (유예 기간 내)
 서버 → 클라이언트
 queue:position     현재 순번 업데이트 { position, total }
 queue:admitted     입장 처리 완료
+queue:timer        결제 타이머 현황 { remainSeconds, extendable }
+queue:extended     결제 시간 연장 완료 { remainSeconds }
 queue:expired      결제 타이머 만료
 queue:error        에러 알림
 ```
@@ -299,6 +325,10 @@ queue:error        에러 알림
 | 브라우저 종료 | 30초 유예 후 이탈 | UX 보호, Redis TTL 활용 |
 | 최대 구매 수량 | 1인 최대 4장 | 실제 티켓팅 표준 |
 | 날짜 기준 | 서버 UTC | 타임존 복잡도 제거 |
+| Concert status | Cron 배치 자동 업데이트 | 판매 시작 시간 자동 전환, 어드민 실수 방지 |
+| Reservation/Payment | 테이블 분리 | 결제 이력 관리, 부분 취소 확장 고려 |
+| 재고 관리 | DB + Redis 이중 관리 | Redis 실시간 차감, DB 최종 확정 |
+| 결제 시간 연장 | 1분 이하일 때 1회 한정 5분 연장 | UX 보호, Redis EXPIRE 활용 |
 
 ---
 
