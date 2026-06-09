@@ -152,4 +152,18 @@ src/
 
 ## 주의할 함정
 
-이 프로젝트에서 실제로 겪은, 직관적이지 않은 동작만 누적해서 적는다. 처음에는 비워둔다.
+- Prisma 7은 `new PrismaClient()` 직접 사용 불가.
+  `PrismaPg` Driver Adapter를 통한 싱글톤으로 초기화해야 한다
+```typescript
+  import { PrismaPg } from '@prisma/adapter-pg';
+  const adapter = new PrismaPg({ connectionString });
+  const prisma = new PrismaClient({ adapter });
+```
+- JWT 발급 시 `jti`(JWT ID) 필드를 반드시 포함해야 한다.
+  없으면 같은 초에 발급된 토큰이 동일해져 Refresh Token 로테이션 버그 발생
+- Jest 병렬 실행 시 공유 테스트 DB에서 FK 충돌 발생.
+  `maxWorkers: 1`로 직렬화 필요 (jest.config.js에 이미 설정됨)
+- Zod v4에서 `z.string({ required_error: '...' })` 제거됨.
+  `z.string({ error: '...' })` 방식 사용
+- `prisma.config.ts`에 `datasource.url` 설정 시
+  `schema.prisma`에서 `url = env("DATABASE_URL")` 라인 제거 필요 (중복 오류)
