@@ -1,13 +1,146 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ────────────────────────────────────────
+// Enum
+// ────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ConcertStatus {
+  SCHEDULED
+  ON_SALE
+  SOLD_OUT
+  ENDED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  READY
+  DONE
+  CANCELLED
+  FAILED
+}
+
+// ────────────────────────────────────────
+// Models
+// ────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  nickname  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  reservations  Reservation[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Concert {
+  id          String        @id @default(uuid())
+  title       String
+  artist      String
+  venue       String
+  concertDate DateTime      @db.Date
+  saleStartAt DateTime
+  status      ConcertStatus @default(SCHEDULED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  zones ConcertZone[]
+
+  // Cron 배치에서 saleStartAt 기준으로 status 업데이트 시 사용
+  @@index([saleStartAt])
+  @@index([status])
+  @@map("concerts")
+}
+
+model ConcertZone {
+  id             String   @id @default(uuid())
+  concertId      String
+  name           String
+  price          Int
+  totalQuantity  Int
+  remainQuantity Int      // DB 최종 확정값 (CONFIRMED 예매 기준)
+                          // 실시간 재고는 Redis zone:{id}:stock 참조
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  concert      Concert       @relation(fields: [concertId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+
+  @@unique([concertId, name]) // 같은 공연에 동일 구역명 중복 방지
+  @@index([concertId])
+  @@map("concert_zones")
+}
+
+model Reservation {
+  id            String            @id @default(uuid())
+  userId        String
+  concertZoneId String
+  quantity      Int               // 1~4
+  totalPrice    Int
+  status        ReservationStatus @default(PENDING)
+  extendedAt    DateTime?         // 결제 시간 연장 시각 (null이면 미사용, 1회 한정)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concertZone ConcertZone @relation(fields: [concertZoneId], references: [id], onDelete: Cascade)
+  payment     Payment?
+
+  @@index([userId])
+  @@index([concertZoneId])
+  @@index([status])
+  @@map("reservations")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  reservationId String        @unique
+  paymentKey    String        @unique
+  amount        Int
+  status        PaymentStatus @default(READY)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
 }
