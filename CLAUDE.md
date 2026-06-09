@@ -167,3 +167,5 @@ src/
   `z.string({ error: '...' })` 방식 사용
 - `prisma.config.ts`에 `datasource.url` 설정 시
   `schema.prisma`에서 `url = env("DATABASE_URL")` 라인 제거 필요 (중복 오류)
+- ts-jest 29 + Jest 30 조합에서 Jest 전역 타입 자동 탐색 실패.
+  `tsconfig.test.json`에 `"types": ["jest", "node"]` 명시 필요

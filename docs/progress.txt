@@ -1,3 +1,6 @@
 [시작] 프로젝트 초기 세팅 완료. 다음: SPEC.md 작성 후 DB 설계 시작.
 [2026-06-09] Prisma 스키마 설계 및 마이그레이션 완료.
-다음: Claude Code에서 Work 단계 시작 - 인증 기능 구현 (회원가입/로그인/JWT Access+Refresh Token, RBAC)
+[2026-06-09] 인증 기능 구현 완료 (AC1~AC10 전부 통과, typecheck 통과).
+  구현: utils(prisma/jwt/bcrypt/response/errors), dtos, repositories, services, controllers, routes, middlewares, index.ts
+  이슈: tsconfig.test.json에 "types": ["jest","node"] 명시 필요 (자동 탐색 실패)
+다음: 인증 기능 Review 단계 (서브에이전트 또는 별도 세션) → 이후 공연 관리 기능 구현
