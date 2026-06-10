@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import http from 'http';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -6,9 +7,13 @@ import 'express-async-errors';
 import authRouter from './routes/auth.routes';
 import adminRouter from './routes/admin.routes';
 import concertRouter from './routes/concert.routes';
+import queueRouter from './routes/queue.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { registerConcertStatusCron } from './queues/concertStatus.queue';
 import { startConcertStatusWorker } from './queues/workers/concertStatus.worker';
+import { registerAdmissionCron, startQueueAdmissionWorker, startQueueDisconnectWorker } from './queues/workers/queue.worker';
+import { initSocket } from './utils/socket';
+import { registerQueueSocket } from './socket/queue.socket';
 
 const app = express();
 
@@ -23,17 +28,25 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/concerts', concertRouter);
+app.use('/api/queue', queueRouter);
 
 app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT ?? 3001;
-  app.listen(PORT, () => {
+  const server = http.createServer(app);
+  const io = initSocket(server);
+  registerQueueSocket(io);
+
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 
   registerConcertStatusCron().catch(console.error);
   startConcertStatusWorker();
+  registerAdmissionCron().catch(console.error);
+  startQueueAdmissionWorker();
+  startQueueDisconnectWorker();
 }
 
 export default app;

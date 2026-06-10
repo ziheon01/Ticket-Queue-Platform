@@ -172,3 +172,5 @@ src/
 - BullMQ와 ioredis를 함께 쓸 때 타입 충돌 발생.
   BullMQ의 `connection` 파라미터에 ioredis 인스턴스를 직접 넘기지 말고
   `{ host, port }` 옵션 객체로 전달할 것
+- Socket.io에서 `socket.emit` + `broadcastPositions` 이중 전송 시 경쟁 조건 발생.
+  개별 응답과 브로드캐스트를 분리하지 말고 `broadcastPositions` 단일화로 처리할 것

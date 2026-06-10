@@ -11,3 +11,10 @@
   이슈: BullMQ 내장 ioredis 버전 충돌 → Queue/Worker 모두 connection options({host,port}) 직접 전달로 해결
         Express 5 req.params 타입 → Request<{id:string}> 제네릭으로 해결
 다음: 공연 관리 기능 Review → 이후 대기열 시스템 구현
+[2026-06-10] 대기열 시스템 구현 완료 (AC1~AC14 전부 통과, typecheck 통과).
+  구현: dtos/queue, repositories/queue, services/queue, controllers/queue, routes/queue,
+        socket/queue.socket, queues/workers/queue.worker, utils/socket, index.ts Socket.io 연동
+  이슈: socket.emit(직접) + broadcastPositions(브로드캐스트) 이중 전송 → once 핸들러 경쟁 조건
+        → 직접 emit 제거, broadcastPositions 단일화로 해결
+  미결: SPEC.md 입장 처리 단위 → 1명씩(BullMQ 5초 반복 체크)으로 확정
+다음: 대기열 시스템 Review → 이후 예매/결제 시스템 구현
