@@ -73,9 +73,10 @@ export async function adminUpdateZone(id: string, input: UpdateZoneInput) {
 
   const zone = await updateZone(id, input);
 
-  // totalQuantity 변경 시 Redis stock 동기화
+  // totalQuantity 변경 시 Redis stock을 delta만큼 증감 (절대값 덮어쓰기 금지 — 소진 재고 유실 방지)
   if (input.totalQuantity !== undefined) {
-    await redis.set(`zone:${id}:stock`, String(input.totalQuantity));
+    const delta = input.totalQuantity - existing.totalQuantity;
+    await redis.incrby(`zone:${id}:stock`, delta);
   }
 
   return zone;

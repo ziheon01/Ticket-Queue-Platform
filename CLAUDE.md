@@ -178,3 +178,5 @@ src/
   `expiry:${reservationId}` 대신 `expiry_${reservationId}` 형태로 사용
 - Payment.paymentKey는 Webhook 수신 전까지 null이므로 스키마에서 nullable로 설정 필요.
   `String?`으로 선언해야 함
+- 운영 배포 전 `/api/payments/webhook`에 Toss Authorization 시크릿 키 헤더 검증 필수.
+  현재 테스트 모드라 미적용 상태.

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { successResponse } from '../utils/response';
-import { CreateReservationDto } from '../dtos/reservation.dto';
+import { CreateReservationDto, toReservationDetailResponse } from '../dtos/reservation.dto';
 import * as reservationService from '../services/reservation.service';
 
 export async function createReservationHandler(req: Request, res: Response): Promise<void> {
@@ -11,7 +11,7 @@ export async function createReservationHandler(req: Request, res: Response): Pro
 
 export async function getMyReservationsHandler(req: Request, res: Response): Promise<void> {
   const reservations = await reservationService.getMyReservations(req.user!.id);
-  res.status(200).json(successResponse(reservations));
+  res.status(200).json(successResponse(reservations.map(toReservationDetailResponse)));
 }
 
 export async function getReservationDetailHandler(
@@ -19,7 +19,7 @@ export async function getReservationDetailHandler(
   res: Response,
 ): Promise<void> {
   const reservation = await reservationService.getReservationDetail(req.params.id, req.user!.id);
-  res.status(200).json(successResponse(reservation));
+  res.status(200).json(successResponse(toReservationDetailResponse(reservation)));
 }
 
 export async function cancelReservationHandler(
