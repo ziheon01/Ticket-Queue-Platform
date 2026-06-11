@@ -18,3 +18,12 @@
         → 직접 emit 제거, broadcastPositions 단일화로 해결
   미결: SPEC.md 입장 처리 단위 → 1명씩(BullMQ 5초 반복 체크)으로 확정
 다음: 대기열 시스템 Review → 이후 예매/결제 시스템 구현
+[2026-06-11] 예매/결제 시스템 구현 완료 (AC1~AC15 전부 통과, typecheck 통과, 전체 58/58 통과).
+  구현: dtos/reservation, repositories/reservation(Lua 원자적 선점),
+        services/reservation, controllers(reservation/payment),
+        routes(reservation/payment), queues/workers/reservation.worker(BullMQ delayed job),
+        index.ts 라우트/워커 등록
+  스키마: Payment.paymentKey를 nullable(String?)로 변경 + 마이그레이션 완료
+  이슈: BullMQ job ID에 ':' 문자 불가 → 'expiry_${id}' 언더스코어 구분자로 해결
+        Prisma generate 누락 시 타입 오류 → 스키마 변경 후 반드시 generate 실행
+다음: 예매/결제 시스템 Review → 이후 추가 기능 구현

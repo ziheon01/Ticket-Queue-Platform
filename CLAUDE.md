@@ -174,3 +174,7 @@ src/
   `{ host, port }` 옵션 객체로 전달할 것
 - Socket.io에서 `socket.emit` + `broadcastPositions` 이중 전송 시 경쟁 조건 발생.
   개별 응답과 브로드캐스트를 분리하지 말고 `broadcastPositions` 단일화로 처리할 것
+- BullMQ job ID에 `:` 사용 불가.
+  `expiry:${reservationId}` 대신 `expiry_${reservationId}` 형태로 사용
+- Payment.paymentKey는 Webhook 수신 전까지 null이므로 스키마에서 nullable로 설정 필요.
+  `String?`으로 선언해야 함

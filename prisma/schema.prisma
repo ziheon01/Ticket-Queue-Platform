@@ -133,7 +133,7 @@ model Reservation {
 model Payment {
   id            String        @id @default(uuid())
   reservationId String        @unique
-  paymentKey    String        @unique
+  paymentKey    String?       @unique
   amount        Int
   status        PaymentStatus @default(READY)
   paidAt        DateTime?
