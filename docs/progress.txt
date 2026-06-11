@@ -27,3 +27,11 @@
   이슈: BullMQ job ID에 ':' 문자 불가 → 'expiry_${id}' 언더스코어 구분자로 해결
         Prisma generate 누락 시 타입 오류 → 스키마 변경 후 반드시 generate 실행
 다음: 예매/결제 시스템 Review → 이후 추가 기능 구현
+[2026-06-11] 전체 구현 리뷰 완료 (features.json 33/33 확인, typecheck 통과, 전체 58/58 통과).
+  수정: 1) handleWebhook 멱등성 추가 (PENDING 아닌 예매 재처리 방지)
+        2) Webhook DONE 시 DB ConcertZone.remainQuantity 차감 (Redis-DB 이중 관리 완성)
+        3) countAdmitted에서 redis.keys() → SCAN (블로킹 명령 제거)
+  미결(보고): adminUpdateZone totalQuantity 변경 시 현재 소진 재고 미반영 (delta 방식 필요)
+              응답에 DTO/Mapper 미적용 (CLAUDE.md 아키텍처 위반, 기능 영향 없음)
+              Toss Webhook 위변조 방지 없음 (테스트 모드 의도적 생략, 운영 시 서명 검증 필요)
+다음: 미결 항목 수정 여부 확인 후 추가 기능 구현 or 배포 준비

@@ -130,6 +130,9 @@ export async function handleWebhook(body: TossWebhookBody) {
   const reservation = await reservationRepo.findReservationById(reservationId);
   if (!reservation) throw new AppError(404, '예매를 찾을 수 없습니다');
 
+  // 이미 최종 상태인 경우 멱등성 보장 (재시도 Webhook 중복 처리 방지)
+  if (reservation.status !== 'PENDING') return;
+
   if (body.status === 'DONE') {
     await reservationRepo.updateReservationAndPaymentInTx(
       reservationId,
@@ -137,6 +140,12 @@ export async function handleWebhook(body: TossWebhookBody) {
       'DONE',
       body.paymentKey,
       new Date(),
+    );
+
+    // DB remainQuantity 차감 (Redis와 이중 관리: DB 최종 확정값 반영)
+    await reservationRepo.decrementZoneRemainQuantity(
+      reservation.concertZoneId,
+      reservation.quantity,
     );
 
     // Redis lock 해제 (재고는 차감된 상태 유지)

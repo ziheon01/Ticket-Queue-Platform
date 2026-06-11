@@ -47,8 +47,15 @@ export async function isAdmitted(concertId: string, userId: string): Promise<boo
 }
 
 export async function countAdmitted(concertId: string): Promise<number> {
-  const keys = await redis.keys(`queue:${concertId}:admitted:*`);
-  return keys.length;
+  let count = 0;
+  let cursor = '0';
+  const pattern = `queue:${concertId}:admitted:*`;
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+    count += keys.length;
+    cursor = nextCursor;
+  } while (cursor !== '0');
+  return count;
 }
 
 // ── Reconnect ────────────────────────────────────────────

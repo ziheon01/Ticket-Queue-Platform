@@ -80,6 +80,13 @@ export async function findZoneById(zoneId: string) {
   });
 }
 
+export async function decrementZoneRemainQuantity(zoneId: string, quantity: number): Promise<void> {
+  await prisma.concertZone.update({
+    where: { id: zoneId },
+    data: { remainQuantity: { decrement: quantity } },
+  });
+}
+
 // ── Reservation ──────────────────────────────────────────
 
 export async function createReservation(
