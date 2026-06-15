@@ -34,4 +34,10 @@
   추가 수정: adminUpdateZone redis.set → redis.incrby delta 방식 (소진 재고 유실 방지)
              reservation 응답에 toReservationDetailResponse mapper 적용 (아키텍처 준수)
   미결: Toss Webhook 위변조 방지 (테스트 모드 의도적 생략, CLAUDE.md에 운영 전 TODO 추가)
+[2026-06-12] 2차 리뷰 수정 완료 (58/58 통과, typecheck 통과).
+  수정: 1) preemptStock 실패(-1/-2) 시 deleteAdmittedKey 추가 (입장 슬롯 소진 처리)
+        2) releaseStock Lua 원자화 (INCRBY + DEL 분리 → 단일 스크립트)
+        3) broadcastPositions N+1 제거 (ZRANK×N → ZRANGE 1회 + Map 분배)
+        4) getAllWaiting 추가 (queue.repository.ts)
+  확인: 이중 재고 복구(Fix 2)는 1차 리뷰의 handleWebhook 상단 PENDING 체크로 이미 해결됨
 다음: 추가 기능 구현 or 배포 준비

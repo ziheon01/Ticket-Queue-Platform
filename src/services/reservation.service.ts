@@ -31,14 +31,16 @@ export async function createReservation(userId: string, input: CreateReservation
   );
 
   if (result === -1) {
-    // 재고 부족 → DB 롤백
+    // 재고 부족 → DB 롤백 + admitted 키 삭제 (입장 슬롯 소진)
     await reservationRepo.updateReservationStatus(reservation.id, 'CANCELLED');
+    await deleteAdmittedKey(zone.concertId, userId);
     throw new AppError(409, '해당 구역의 재고가 부족합니다');
   }
 
   if (result === -2) {
-    // 이미 선점 중 → DB 롤백
+    // 이미 선점 중 → DB 롤백 + admitted 키 삭제 (입장 슬롯 소진)
     await reservationRepo.updateReservationStatus(reservation.id, 'CANCELLED');
+    await deleteAdmittedKey(zone.concertId, userId);
     throw new AppError(409, '이미 진행 중인 예매가 있습니다');
   }
 

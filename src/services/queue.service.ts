@@ -19,12 +19,18 @@ async function getPositionResult(
 async function broadcastPositions(concertId: string): Promise<void> {
   if (!io) return;
   const sockets = await io.in(`concert:${concertId}`).fetchSockets();
-  const total = await queueRepo.getWaitingCount(concertId);
+  if (sockets.length === 0) return;
+
+  // ZRANGE 한 번으로 전체 순위 맵 구성 (N+1 ZRANK 제거)
+  const members = await queueRepo.getAllWaiting(concertId);
+  const total = members.length;
+  const rankMap = new Map(members.map((uid, idx) => [uid, idx]));
+
   for (const s of sockets) {
     const uid = s.data.userId as string | undefined;
     if (!uid) continue;
-    const rank = await queueRepo.getWaitingRank(concertId, uid);
-    if (rank !== null) {
+    const rank = rankMap.get(uid);
+    if (rank !== undefined) {
       s.emit('queue:position', { position: rank + 1, total });
     }
   }

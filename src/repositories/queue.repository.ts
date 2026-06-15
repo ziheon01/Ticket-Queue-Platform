@@ -33,6 +33,10 @@ export async function getTopWaiting(concertId: string, count: number): Promise<s
   return redis.zrange(waitingKey(concertId), 0, count - 1);
 }
 
+export async function getAllWaiting(concertId: string): Promise<string[]> {
+  return redis.zrange(waitingKey(concertId), 0, -1);
+}
+
 // ── Admitted ────────────────────────────────────────────
 export async function setAdmittedKey(concertId: string, userId: string): Promise<void> {
   await redis.set(admittedKey(concertId, userId), '1', 'EX', 300); // 5 minutes

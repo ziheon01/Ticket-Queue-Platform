@@ -7,6 +7,13 @@ import type { CreateReservationInput } from '../dtos/reservation.dto';
 export const stockKey = (zoneId: string) => `zone:${zoneId}:stock`;
 export const lockKey = (zoneId: string, userId: string) => `zone:${zoneId}:lock:${userId}`;
 
+// ── Lua script: 재고 복구 + lock 삭제 원자 처리 ─────────────
+const RELEASE_SCRIPT = `
+redis.call('INCRBY', KEYS[1], tonumber(ARGV[1]))
+redis.call('DEL', KEYS[2])
+return 1
+`;
+
 // ── Lua script: 재고 확인 + 차감 + lock 설정 원자 처리 ──────
 // Returns: 1=성공, -1=재고부족, -2=이미선점중
 const PREEMPT_SCRIPT = `
@@ -51,8 +58,13 @@ export async function releaseStock(
   userId: string,
   quantity: number,
 ): Promise<void> {
-  await redis.incrby(stockKey(zoneId), quantity);
-  await redis.del(lockKey(zoneId, userId));
+  await redis.eval(
+    RELEASE_SCRIPT,
+    2,
+    stockKey(zoneId),
+    lockKey(zoneId, userId),
+    String(quantity),
+  );
 }
 
 export async function deleteLock(zoneId: string, userId: string): Promise<void> {
