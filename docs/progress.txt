@@ -40,4 +40,4 @@
         3) broadcastPositions N+1 제거 (ZRANK×N → ZRANGE 1회 + Map 분배)
         4) getAllWaiting 추가 (queue.repository.ts)
   확인: 이중 재고 복구(Fix 2)는 1차 리뷰의 handleWebhook 상단 PENDING 체크로 이미 해결됨
-다음: 추가 기능 구현 or 배포 준비
+다음: Front 디자인 + swagger api 문서 작성(readme 등등, UX 테스트 )
