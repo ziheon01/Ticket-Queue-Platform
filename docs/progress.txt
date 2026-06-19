@@ -40,5 +40,5 @@
         3) broadcastPositions N+1 제거 (ZRANK×N → ZRANGE 1회 + Map 분배)
         4) getAllWaiting 추가 (queue.repository.ts)
   확인: 이중 재고 복구(Fix 2)는 1차 리뷰의 handleWebhook 상단 PENDING 체크로 이미 해결됨
-[2026-06-18] Stitch 디자인 작업 시작. 프로젝트 ID: <받은 ID>
+[2026-06-18] Stitch 디자인 작업 시작. 프로젝트 ID: 236975419009576561
 대기열 화면 디자인 1차 생성 (모바일 → 웹 버전으로 재요청 중)
