@@ -41,4 +41,13 @@
         4) getAllWaiting 추가 (queue.repository.ts)
   확인: 이중 재고 복구(Fix 2)는 1차 리뷰의 handleWebhook 상단 PENDING 체크로 이미 해결됨
 [2026-06-18] Stitch 디자인 작업 시작. 프로젝트 ID: 236975419009576561
-대기열 화면 디자인 1차 생성 (모바일 → 웹 버전으로 재요청 중)
+  웹 데스크탑 대기열 화면 다크/라이트 2종 생성 완료
+  라이트 모드 재생성 (다크 모드 기준 레이아웃 통일, R석·2매 표시 제거)
+  생성 HTML 참고본: docs/light_mode_queue_screen.html
+[2026-06-19] 프론트엔드 초기 세팅 + QueuePage 정적 UI 구현 완료.
+  세팅: client/ — Vite + React + TypeScript + Tailwind CSS v3 (dark mode: class)
+  구현: client/src/pages/QueuePage.tsx — 더미 데이터 기반 정적 UI
+    - Navbar (로고, 네비, 테마 토글), ConcertCard (좌 40%), QueuePanel (우 60%), Footer
+    - 다크/라이트 실시간 전환, pulse 애니메이션, 진행률 바, 통계 카드
+  빌드/타입체크 통과 (tsc --noEmit, vite build)
+다음: QueuePage API 연결 (WebSocket 대기 순번, 공연 정보 fetch)
