@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TicketQ - 실시간 대기열</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#7c3aed",
+                        "on-surface": "#1A1D2E",
+                        "on-surface-variant": "#64748b",
+                        "outline-variant": "#DDD8F0",
+                        "surface-variant": "#E2DCF8",
+                        "error": "#ef4444"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "16px",
+                        "md": "24px",
+                        "lg": "40px",
+                        "gutter": "20px",
+                        "base": "4px",
+                        "xs": "8px",
+                        "container-max": "1200px",
+                        "xl": "64px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "display-numeric": ["Plus Jakarta Sans"],
+                        "label-caps": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-numeric": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(to bottom right, #F5F3FF, #EDE9FE);
+            color: #1A1D2E;
+        }
+        .card-bg {
+            background-color: #FFFFFF;
+            border: 1px solid #DDD8F0;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #7c3aed, #0566d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .progress-gradient {
+            background: linear-gradient(90deg, #0566d9, #7c3aed);
+        }
+        
+        /* Queue Number Pulse Animation */
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(124, 58, 237, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+        }
+        .pulse-effect {
+            animation: pulse-ring 2s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen font-body-md text-on-surface flex flex-col">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/85 backdrop-blur-xl border-b border-[#DDD8F0] shadow-sm">
+<div class="flex justify-between items-center h-16 px-gutter max-w-container-max mx-auto">
+<!-- Logo area -->
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#7c3aed]" style="font-variation-settings: 'FILL' 1;">confirmation_number</span>
+<span class="font-headline-md text-headline-md font-bold tracking-tighter text-[#7c3aed]">VIBE TICKETS</span>
+</div>
+<!-- Navigation Links -->
+<div class="hidden md:flex items-center gap-md font-body-md text-body-md">
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">공연</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1" href="#">티켓팅</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">마이페이지</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">고객센터</a>
+</div>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-sm">
+<button class="p-2 text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined">light_mode</span>
+</button>
+<button class="p-2 text-primary hover:bg-primary/5 rounded-lg transition-all active:scale-95 duration-150 flex items-center gap-2">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-sm font-medium">홍길동</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-[104px] pb-xl px-gutter">
+<div class="max-w-[960px] mx-auto w-full">
+<!-- Breadcrumb & Header -->
+<div class="mb-lg">
+<div class="text-sm text-on-surface-variant mb-2">홈 &gt; 티켓팅 &gt; 2026 IU CONCERT &gt; 대기열</div>
+<h1 class="text-[28px] font-bold text-[#1A1D2E] mb-2 leading-tight">실시간 대기열</h1>
+<p class="text-on-surface-variant text-lg">잠시만 기다려 주세요. 순번이 되면 자동으로 진행됩니다.</p>
+</div>
+<!-- Layout Grid -->
+<div class="flex flex-col md:flex-row gap-lg">
+<!-- Left Column: Concert Info (40%) -->
+<div class="w-full md:w-[40%] flex flex-col gap-md">
+<div class="card-bg rounded-xl p-md flex flex-col items-center text-center">
+<!-- Poster -->
+<div class="w-full aspect-[3/4] mb-sm rounded-lg overflow-hidden border border-outline-variant relative">
+<img class="w-full h-full object-cover" data-alt="Concert poster for IU" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA8SAZECDh87tvQTR0lxwmKHaPp8PKAhA15TAockP4iMZMQg6A0f-oh4AWkusy_66L2B_ZK6BkkNj7F15W294mBAaAL0GAbR8CAWBIL_6RB8Z0rdM4J7BncaEKOVfe6PJdE44_gXmC_ufhBibZMwLMCAIniw-kz7P26DARhuAIq3TzPyqU8tzhelcWk_tdx1TWXisZZivmxdjW3E5dybY3wIHdhWhKEkCxaiim8gai_19pYvflCXvcK87U1EeZ2zuLH_2wv3Cxdg"/>
+<!-- Badges -->
+<div class="absolute top-3 left-3 flex gap-2">
+<span class="bg-[#7c3aed] text-white text-xs px-2 py-1 rounded font-bold tracking-wider">아이유 (IU)</span>
+</div>
+</div>
+<h2 class="font-headline-md text-headline-md text-[#1A1D2E] mt-sm mb-1">2026 IU CONCERT: THE WINNING</h2>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm mb-4">
+<span class="material-symbols-outlined text-[18px] text-[#7c3aed]">location_on</span>
+<span>잠실 종합운동장 주경기장</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant text-sm mb-sm">
+<span class="material-symbols-outlined text-[18px] text-[#7c3aed]">calendar_month</span>
+<span>2026.07.15 (수) 오후 7:00</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Queue Status (60%) -->
+<div class="w-full md:w-[60%] flex flex-col gap-sm">
+<!-- Warning Banner -->
+<div class="bg-[#FFF8E6] border border-[#D97706]/30 rounded-lg p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-[#D97706] mt-0.5">warning</span>
+<div class="text-[#92400E] text-sm leading-relaxed">
+<strong class="font-semibold block mb-1">잠시만 기다려주세요</strong>
+                            새로고침하거나 창을 닫으면 대기 순번을 잃을 수 있습니다. 현재 페이지를 유지해 주세요.
+                        </div>
+</div>
+<!-- Main Queue Number Card -->
+<div class="card-bg rounded-xl p-lg flex flex-col items-center justify-center relative overflow-hidden mt-2">
+<div class="absolute inset-0 bg-[#7c3aed]/5 rounded-xl blur-2xl"></div>
+<div class="text-on-surface-variant text-sm mb-2 relative z-10 font-medium">나의 대기 순번</div>
+<div class="flex items-baseline gap-2 mb-4 relative z-10">
+<span class="font-display-numeric text-[96px] font-extrabold tracking-tighter gradient-text leading-none pulse-effect rounded-full px-2">1,825</span>
+<span class="text-xl text-[#7c3aed] font-bold">번째</span>
+</div>
+<div class="bg-[#EDE9FE] border border-[#DDD8F0] px-4 py-2 rounded-full relative z-10 text-sm text-[#1A1D2E]">
+                            전체 <strong class="text-[#7c3aed]">3,520</strong>명 중 1,847번째 대기 중
+                        </div>
+</div>
+<!-- Progress Card -->
+<div class="card-bg rounded-xl p-md">
+<div class="flex justify-between items-end mb-3">
+<span class="text-sm font-medium text-on-surface-variant">대기 진행률</span>
+<span class="text-2xl font-bold text-[#1A1D2E]">48.2%</span>
+</div>
+<div class="w-full h-3 bg-[#E2DCF8] rounded-full overflow-hidden mb-2">
+<div class="h-full progress-gradient rounded-full transition-all duration-1000 ease-out" style="width: 48.2%;"></div>
+</div>
+<div class="flex justify-between text-xs text-on-surface-variant/70 font-label-caps tracking-wider">
+<span>0명</span>
+<span>3,520명</span>
+</div>
+</div>
+<!-- Stats Row -->
+<div class="grid grid-cols-3 gap-sm">
+<div class="card-bg rounded-lg p-4 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-[#7c3aed] mb-1">timer</span>
+<span class="text-xs text-on-surface-variant mb-1">예상 대기 시간</span>
+<strong class="text-[#1A1D2E] text-lg">약 12분</strong>
+</div>
+<div class="card-bg rounded-lg p-4 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-[#7c3aed] mb-1">group</span>
+<span class="text-xs text-on-surface-variant mb-1">내 앞 대기자</span>
+<strong class="text-[#1A1D2E] text-lg">1,824명</strong>
+</div>
+<div class="card-bg rounded-lg p-4 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-[#7c3aed] mb-1">speed</span>
+<span class="text-xs text-on-surface-variant mb-1">처리 속도</span>
+<strong class="text-[#1A1D2E] text-lg">약 3명/분</strong>
+</div>
+</div>
+<!-- Status Bar Footer -->
+<div class="flex justify-between items-center mt-4 px-2">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
+<span class="text-xs text-on-surface-variant/70 font-label-caps">실시간 연결됨 · WebSocket</span>
+</div>
+<button class="text-sm text-error hover:underline transition-colors duration-200 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">exit_to_app</span>
+                            대기열 이탈
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full mt-xl border-t border-[#DDD8F0] bg-[#EDE9FE] pb-8 font-label-caps text-label-caps">
+<div class="max-w-container-max mx-auto py-lg px-gutter flex flex-col md:flex-row justify-between items-center gap-md">
+<div class="flex flex-col md:flex-row items-center gap-md">
+<span class="font-headline-md text-headline-md font-bold text-[#7c3aed]">VIBE TICKETS</span>
+<span class="text-on-surface-variant opacity-70">© 2024 VIBE TICKETS. All rights reserved.</span>
+</div>
+<div class="flex gap-md">
+<a class="text-on-surface-variant opacity-70 hover:opacity-100 hover:text-primary transition-opacity" href="#">이용약관</a>
+<a class="text-on-surface-variant opacity-70 hover:opacity-100 hover:text-primary transition-opacity" href="#">개인정보처리방침</a>
+<a class="text-on-surface-variant opacity-70 hover:opacity-100 hover:text-primary transition-opacity" href="#">회사소개</a>
+<a class="text-on-surface-variant opacity-70 hover:opacity-100 hover:text-primary transition-opacity" href="#">문의하기</a>
+</div>
+</div>
+</footer>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const queueNumberEl = document.querySelector('.font-display-numeric');
+            const peopleAheadEl = document.querySelectorAll('.text-lg')[1];
+            const progressEl = document.querySelector('.progress-gradient');
+            const percentEl = document.querySelector('.text-2xl');
+            
+            let currentNum = 1825;
+            let total = 3520;
+            
+            setInterval(() => {
+                const drop = Math.floor(Math.random() * 3) + 1;
+                if(currentNum - drop > 0) {
+                    currentNum -= drop;
+                    queueNumberEl.textContent = currentNum.toLocaleString();
+                    peopleAheadEl.textContent = (currentNum - 1).toLocaleString() + '명';
+                    const processed = total - currentNum;
+                    const percent = (processed / total * 100).toFixed(1);
+                    progressEl.style.width = `${percent}%`;
+                    percentEl.textContent = `${percent}%`;
+                }
+            }, 4500);
+        });
+    </script>
+</body></html>
