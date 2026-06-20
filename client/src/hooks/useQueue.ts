@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import axios from 'axios'
 import { io, type Socket } from 'socket.io-client'
-import { api, getToken, ApiError } from '@/api/client'
+import { api, getToken } from '@/api/client'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -185,7 +186,9 @@ export function useQueue(concertId: string | null): UseQueueResult {
         }
       } catch (err) {
         if (cancelled) return
-        const msg = err instanceof ApiError ? err.message : '공연 정보를 불러올 수 없습니다'
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.message ?? err.message)
+          : '공연 정보를 불러올 수 없습니다'
         setConcertError(msg)
         setPhase('concert_error')
       }

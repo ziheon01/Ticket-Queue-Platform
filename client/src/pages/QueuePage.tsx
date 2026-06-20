@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { cn } from '@/lib/utils'
-import { api, ApiError } from '@/api/client'
+import { api } from '@/api/client'
 import { useQueue, type Phase } from '@/hooks/useQueue'
 
 // ---------------------------------------------------------------------------
@@ -30,7 +31,9 @@ function useConcertId() {
           setResolveError('현재 판매 중인 공연이 없습니다')
         }
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : '공연 목록 조회 실패'
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.message ?? err.message)
+          : '공연 목록 조회 실패'
         setResolveError(msg)
       }
     }
@@ -104,7 +107,7 @@ function NoAuthView({ dark }: { dark: boolean }) {
         대기열에 참여하려면 먼저 로그인해 주세요.
         <br />
         <code className="text-xs bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded mt-2 inline-block">
-          localStorage.setItem('vibe_token', '...')
+          localStorage.setItem('accessToken', '...')
         </code>
       </p>
     </FullPageCenter>

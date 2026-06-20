@@ -1,44 +1,108 @@
+import axios, { type InternalAxiosRequestConfig } from 'axios'
+
+// ---------------------------------------------------------------------------
+// 백엔드 공통 응답 래퍼
+// ---------------------------------------------------------------------------
+
+export interface ApiResponse<T = null> {
+  success: boolean
+  data: T
+  message?: string
+}
+
+// ---------------------------------------------------------------------------
+// axios 인스턴스
+// ---------------------------------------------------------------------------
+
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
-export class ApiError extends Error {
-  readonly status: number
+const client = axios.create({ baseURL: BASE })
 
-  constructor(status: number, message: string) {
-    super(message)
-    this.status = status
-    this.name = 'ApiError'
-  }
+// ---------------------------------------------------------------------------
+// Request 인터셉터: accessToken 자동 부착
+// ---------------------------------------------------------------------------
+
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// ---------------------------------------------------------------------------
+// Response 인터셉터: 401 → refreshToken으로 재발급 → 원요청 재시도
+// ---------------------------------------------------------------------------
+
+type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean }
+
+let isRefreshing = false
+let waitQueue: Array<(token: string) => void> = []
+
+client.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config as RetryableConfig
+
+    if (error.response?.status !== 401 || original._retry) {
+      return Promise.reject(error)
+    }
+    original._retry = true
+
+    // 이미 재발급 중이면 완료될 때까지 대기
+    if (isRefreshing) {
+      return new Promise((resolve) => {
+        waitQueue.push((token) => {
+          original.headers.Authorization = `Bearer ${token}`
+          resolve(client(original))
+        })
+      })
+    }
+
+    isRefreshing = true
+    try {
+      const refreshToken = localStorage.getItem('refreshToken')
+      if (!refreshToken) throw new Error('no refresh token')
+
+      const { data } = await axios.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
+        `${BASE}/api/auth/refresh`,
+        { refreshToken },
+      )
+
+      const { accessToken, refreshToken: newRefresh } = data.data
+      localStorage.setItem('accessToken', accessToken)
+      localStorage.setItem('refreshToken', newRefresh)
+
+      waitQueue.forEach((cb) => cb(accessToken))
+      waitQueue = []
+
+      original.headers.Authorization = `Bearer ${accessToken}`
+      return client(original)
+    } catch {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      window.location.href = '/login'
+      return Promise.reject(error)
+    } finally {
+      isRefreshing = false
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// 헬퍼: data.data 자동 추출 + socketUrl 노출
+// ---------------------------------------------------------------------------
+
+export const api = {
+  get: <T>(path: string) =>
+    client.get<ApiResponse<T>>(path).then((r) => r.data.data),
+  post: <T>(path: string, body?: unknown) =>
+    client.post<ApiResponse<T>>(path, body).then((r) => r.data.data),
+  delete: <T>(path: string) =>
+    client.delete<ApiResponse<T>>(path).then((r) => r.data.data),
+  socketUrl: BASE,
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem('vibe_token')
+  return localStorage.getItem('accessToken')
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getToken()
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
-  })
-
-  const body: { success: boolean; data: T; message?: string } = await res
-    .json()
-    .catch(() => ({ success: false, data: null, message: '응답 파싱 실패' }))
-
-  if (!res.ok) {
-    throw new ApiError(res.status, body.message ?? `HTTP ${res.status}`)
-  }
-
-  return body.data
-}
-
-export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string) => request<T>(path, { method: 'POST' }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-  socketUrl: BASE,
-}
+export default client
