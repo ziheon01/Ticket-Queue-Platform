@@ -94,3 +94,10 @@
     - NoAuthView 컴포넌트 제거 (ProtectedRoute가 초기 진입 차단)
     - useEffect: phase === 'no_auth' → navigate('/login', replace) — 세션 중 토큰 소멸 대비
 다음: 예매/결제 화면 구현 또는 전체 플로우 E2E 테스트
+[2026-06-21] 인증 가드 및 Navbar 닉네임 연동 완료 (typecheck 통과).
+  신규: client/src/components/ProtectedRoute.tsx — getToken() 없으면 /login 리다이렉트
+  App.tsx: QueuePage를 ProtectedRoute로 감싸 라우터 레벨 인증 가드 적용
+  QueuePage.tsx: NoAuthView 제거, no_auth phase → navigate('/login') 세션 중 토큰 소멸 대응
+               Navbar 닉네임: 하드코딩 제거 → GET /api/auth/me 응답으로 교체 (로딩 중 shimmer)
+  LoginPage.tsx: 이미 로그인 상태에서 /login 진입 시 / 리다이렉트 추가
+다음: 공연 목록 페이지 디자인 (Stitch 생성 → ConcertsPage.tsx 구현)
