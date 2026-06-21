@@ -73,3 +73,16 @@
     - Navbar·Footer·InputField·PrimaryButton·TabSwitcher 내부 컴포넌트화
     - form onSubmit 핸들러는 TODO 상태 (API 연결 다음 단계)
 다음: LoginPage API 연결 (POST /api/auth/login, /api/auth/register) + App.tsx 라우팅 추가
+[2026-06-21] LoginPage API 연결 + React Router 라우팅 완료 (typecheck·빌드 통과).
+  설치: react-router-dom v7.18.0 (이미 설치됨 확인)
+  App.tsx: BrowserRouter + AppRoutes 패턴 (TIL 플랫폼과 동일 구조)
+    / → QueuePage, /login → LoginPage, /* → / 리다이렉트
+  LoginPage.tsx: API 연결 완료
+    - POST /api/auth/login → accessToken·refreshToken localStorage 저장 → navigate('/')
+    - POST /api/auth/register → 성공 시 자동 로그인(login API 재호출) → navigate('/')
+    - parseApiError(): 401→잘못된 자격증명, 409→중복 이메일, 그 외 서버 메시지
+    - AlertBanner: 탭 상단 에러 표시, X버튼 닫기
+    - PrimaryButton: isLoading 시 스피너 + "처리 중…" + disabled
+    - 탭 전환 시 에러 초기화 (switchTab 함수)
+    - 회원가입 불일치 상태에서 submit 시 early return + 버튼 disabled
+다음: QueuePage에서 미로그인 시 /login 리다이렉트 처리 (ProtectedRoute 또는 useEffect)
