@@ -86,3 +86,11 @@
     - 탭 전환 시 에러 초기화 (switchTab 함수)
     - 회원가입 불일치 상태에서 submit 시 early return + 버튼 disabled
 다음: QueuePage에서 미로그인 시 /login 리다이렉트 처리 (ProtectedRoute 또는 useEffect)
+[2026-06-21] 인증 가드 구현 완료 (typecheck·빌드 통과).
+  신규: client/src/components/ProtectedRoute.tsx
+    - getToken() 없으면 <Navigate to="/login" replace /> — 동기 체크라 로딩 스피너 불필요
+  App.tsx: QueuePage를 ProtectedRoute로 감싸기 (앞으로 추가될 보호 라우트도 동일 패턴)
+  QueuePage.tsx:
+    - NoAuthView 컴포넌트 제거 (ProtectedRoute가 초기 진입 차단)
+    - useEffect: phase === 'no_auth' → navigate('/login', replace) — 세션 중 토큰 소멸 대비
+다음: 예매/결제 화면 구현 또는 전체 플로우 E2E 테스트

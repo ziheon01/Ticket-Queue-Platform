@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
-import { api } from '@/api/client'
+import { api, getToken } from '@/api/client'
 
 // ---------------------------------------------------------------------------
 // API 응답 타입
@@ -600,6 +600,8 @@ function Footer({ dark }: { dark: boolean }) {
 
 export default function LoginPage() {
   const navigate = useNavigate()
+
+  if (getToken()) return <Navigate to="/" replace />
 
   const [dark, setDark] = useState(true)
   const [tab, setTab] = useState<Tab>('login')

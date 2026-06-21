@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
@@ -96,23 +97,6 @@ function LoadingView({ dark }: { dark: boolean }) {
   )
 }
 
-function NoAuthView({ dark }: { dark: boolean }) {
-  return (
-    <FullPageCenter>
-      <Icon name="lock" className="text-[48px] text-[#7c3aed]" />
-      <h2 className={cn('font-display font-bold text-xl', dark ? 'text-white' : 'text-[#1A1D2E]')}>
-        로그인이 필요합니다
-      </h2>
-      <p className={cn('text-sm max-w-xs', dark ? 'text-[#ccc3d8]' : 'text-[#64748b]')}>
-        대기열에 참여하려면 먼저 로그인해 주세요.
-        <br />
-        <code className="text-xs bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded mt-2 inline-block">
-          localStorage.setItem('accessToken', '...')
-        </code>
-      </p>
-    </FullPageCenter>
-  )
-}
 
 function ErrorView({
   dark,
@@ -136,7 +120,7 @@ function ErrorView({
 // Navbar
 // ---------------------------------------------------------------------------
 
-function Navbar({ dark, onToggle }: { dark: boolean; onToggle: () => void }) {
+function Navbar({ dark, onToggle, nickname }: { dark: boolean; onToggle: () => void; nickname?: string }) {
   return (
     <nav
       className={cn(
@@ -192,7 +176,11 @@ function Navbar({ dark, onToggle }: { dark: boolean; onToggle: () => void }) {
             )}
           >
             <Icon name="account_circle" className="text-[22px]" />
-            <span className="text-sm font-medium">홍길동</span>
+            {nickname ? (
+              <span className="text-sm font-medium">{nickname}</span>
+            ) : (
+              <span className={cn('text-sm font-medium w-12 h-3.5 rounded animate-pulse', dark ? 'bg-white/10' : 'bg-[#7c3aed]/10')} />
+            )}
           </button>
         </div>
       </div>
@@ -569,8 +557,16 @@ function Footer({ dark }: { dark: boolean }) {
 // ---------------------------------------------------------------------------
 
 export default function QueuePage() {
+  const navigate = useNavigate()
   const [dark, setDark] = useState(true)
+  const [nickname, setNickname] = useState<string | undefined>(undefined)
   const { concertId, resolveError } = useConcertId()
+
+  useEffect(() => {
+    api.get<{ nickname: string }>('/api/auth/me')
+      .then((user) => setNickname(user.nickname))
+      .catch(() => {/* 401이면 client.ts 인터셉터가 /login으로 리다이렉트 */})
+  }, [])
 
   const {
     phase,
@@ -585,6 +581,11 @@ export default function QueuePage() {
     clearError,
   } = useQueue(concertId)
 
+  // 세션 중 토큰이 소멸한 경우(다른 탭에서 로그아웃 등) 리다이렉트
+  useEffect(() => {
+    if (phase === 'no_auth') navigate('/login', { replace: true })
+  }, [phase, navigate])
+
   const isQueuePhase = phase === 'in_queue' || phase === 'admitted'
 
   return (
@@ -597,7 +598,7 @@ export default function QueuePage() {
             : 'bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] text-[#1A1D2E]',
         )}
       >
-        <Navbar dark={dark} onToggle={() => setDark((d) => !d)} />
+        <Navbar dark={dark} onToggle={() => setDark((d) => !d)} nickname={nickname} />
 
         <main className="flex-grow pt-[104px] pb-16 px-5">
           <div className="max-w-[960px] mx-auto w-full">
@@ -622,8 +623,6 @@ export default function QueuePage() {
             {resolveError && !concertId && (
               <ErrorView dark={dark} message={resolveError} />
             )}
-
-            {phase === 'no_auth' && <NoAuthView dark={dark} />}
 
             {phase === 'concert_error' && (
               <ErrorView dark={dark} message={concertError ?? '알 수 없는 오류'} />
