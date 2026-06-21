@@ -64,3 +64,12 @@
   수정: QueuePage.tsx — 6가지 phase 처리 (loading/no_auth/concert_error/idle/in_queue/admitted)
   인증: localStorage.getItem('vibe_token') — Access Token 읽기
 다음: 로그인 페이지 구현 또는 예매/결제 화면 구현
+[2026-06-21] Stitch 로그인/회원가입 디자인 생성 + LoginPage.tsx 구현 완료 (typecheck·빌드 통과).
+  Stitch: 다크(813ad89b) + 라이트(398aa066) 2종 데스크탑 화면 프로젝트에 추가
+  구현: client/src/pages/LoginPage.tsx — 정적 UI + 탭 전환 인터랙션
+    - 로그인 탭: 이메일·비밀번호, 비밀번호 표시 토글
+    - 회원가입 탭: 이메일·비밀번호·비밀번호확인·닉네임, 불일치 실시간 피드백
+    - 다크/라이트 테마 전환 (QueuePage와 동일 컬러 팔레트)
+    - Navbar·Footer·InputField·PrimaryButton·TabSwitcher 내부 컴포넌트화
+    - form onSubmit 핸들러는 TODO 상태 (API 연결 다음 단계)
+다음: LoginPage API 연결 (POST /api/auth/login, /api/auth/register) + App.tsx 라우팅 추가
