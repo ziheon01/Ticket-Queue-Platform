@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { useNavigate, useParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
 import { useQueue, type Phase } from '@/hooks/useQueue'
@@ -10,37 +9,17 @@ import { useQueue, type Phase } from '@/hooks/useQueue'
 // ---------------------------------------------------------------------------
 
 function useConcertId() {
-  const [concertId, setConcertId] = useState<string | null>(null)
+  const { concertId: paramId } = useParams<{ concertId: string }>()
+  const [concertId, setConcertId] = useState<string | null>(paramId ?? null)
   const [resolveError, setResolveError] = useState<string | null>(null)
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const id = params.get('concertId')
-    if (id) {
-      setConcertId(id)
+    if (paramId) {
+      setConcertId(paramId)
       return
     }
-
-    // URL에 없으면 ON_SALE 공연 목록에서 첫 번째 사용
-    async function fetchFirst() {
-      try {
-        const list = await api.get<{ id: string }[]>('/api/concerts?status=ON_SALE')
-        const first = list[0]
-        if (first) {
-          setConcertId(first.id)
-        } else {
-          setResolveError('현재 판매 중인 공연이 없습니다')
-        }
-      } catch (err) {
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.message ?? err.message)
-          : '공연 목록 조회 실패'
-        setResolveError(msg)
-      }
-    }
-
-    fetchFirst()
-  }, [])
+    setResolveError('공연 정보를 찾을 수 없습니다')
+  }, [paramId])
 
   return { concertId, resolveError }
 }
