@@ -101,3 +101,17 @@
                Navbar 닉네임: 하드코딩 제거 → GET /api/auth/me 응답으로 교체 (로딩 중 shimmer)
   LoginPage.tsx: 이미 로그인 상태에서 /login 진입 시 / 리다이렉트 추가
 다음: 공연 목록 페이지 디자인 (Stitch 생성 → ConcertsPage.tsx 구현)
+[2026-06-22] 공연 목록 페이지 구현 완료 (typecheck·빌드 통과).
+  Stitch: 다크/라이트 2종 데스크탑 화면 프로젝트(236975419009576561)에 추가
+  신규: client/src/pages/ConcertsPage.tsx — 정적 더미 데이터 기반 초안
+    - 상태 탭 필터 (전체/판매예정/판매중/매진/판매종료), 3열 그리드, hover lift-up
+    - 상태 배지 (ON_SALE 펄스 닷), ENDED 취소선, 빈 상태 UI
+    - ON_SALE만 "티켓 예매" 버튼 활성 → navigate('/queue/:concertId')
+  라우팅 변경: App.tsx에서 / → ConcertsPage, /queue/:concertId → QueuePage 추가
+  QueuePage: useConcertId를 useParams 기반으로 교체 (query param 방식 제거)
+[2026-06-23] ConcertsPage API 연결 완료 (typecheck·빌드 통과).
+  useConcerts 훅: GET /api/concerts 1회 호출 → 탭 전환은 클라이언트 필터링
+  로딩: SkeletonCard 3개 shimmer 애니메이션
+  에러: ErrorState + "다시 시도" 버튼 (retry 재호출)
+  Concert 타입에서 minPrice·priceLabel 제거 (API 응답에 없음)
+다음: 공연 상세 페이지 또는 예매/결제 화면 구현

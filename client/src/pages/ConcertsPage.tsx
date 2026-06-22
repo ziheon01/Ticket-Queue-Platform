@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
@@ -18,82 +18,45 @@ interface Concert {
   concertDate: string
   saleStartAt: string
   status: ConcertStatus
-  minPrice: number
-  priceLabel: string
 }
 
 // ---------------------------------------------------------------------------
-// Dummy data
+// useConcerts hook
 // ---------------------------------------------------------------------------
 
-const DUMMY_CONCERTS: Concert[] = [
-  {
-    id: 'c-001',
-    title: '2026 IU CONCERT THE GOLDEN HOUR',
-    artist: 'IU (아이유)',
-    venue: '올림픽공원 올림픽홀',
-    concertDate: '2026-08-15T19:00:00Z',
-    saleStartAt: '2026-07-01T10:00:00Z',
-    status: 'ON_SALE',
-    minPrice: 165000,
-    priceLabel: 'VIP 165,000원~',
-  },
-  {
-    id: 'c-002',
-    title: 'BTS WORLD TOUR IN SEOUL',
-    artist: 'BTS',
-    venue: '잠실 종합운동장 주경기장',
-    concertDate: '2026-09-20T18:00:00Z',
-    saleStartAt: '2026-07-15T10:00:00Z',
-    status: 'ON_SALE',
-    minPrice: 220000,
-    priceLabel: 'R 220,000원~',
-  },
-  {
-    id: 'c-003',
-    title: '2026 BLACKPINK COMEBACK SHOW',
-    artist: 'BLACKPINK',
-    venue: 'KSPO DOME',
-    concertDate: '2026-10-05T20:00:00Z',
-    saleStartAt: '2026-08-01T10:00:00Z',
-    status: 'SCHEDULED',
-    minPrice: 198000,
-    priceLabel: 'VIP 198,000원~',
-  },
-  {
-    id: 'c-004',
-    title: 'COLDPLAY MUSIC OF THE SPHERES',
-    artist: 'Coldplay',
-    venue: '고척스카이돔',
-    concertDate: '2026-07-12T19:30:00Z',
-    saleStartAt: '2026-05-01T10:00:00Z',
-    status: 'SOLD_OUT',
-    minPrice: 180000,
-    priceLabel: 'R 180,000원~',
-  },
-  {
-    id: 'c-005',
-    title: '2026 aespa SYNK : PARALLEL LINE',
-    artist: 'aespa',
-    venue: '케이스포돔',
-    concertDate: '2026-06-01T18:00:00Z',
-    saleStartAt: '2026-04-15T10:00:00Z',
-    status: 'ENDED',
-    minPrice: 132000,
-    priceLabel: 'R 132,000원~',
-  },
-  {
-    id: 'c-006',
-    title: 'EXO UNIVERSE — THE FINAL',
-    artist: 'EXO',
-    venue: '상암 월드컵경기장',
-    concertDate: '2026-11-22T19:00:00Z',
-    saleStartAt: '2026-09-01T10:00:00Z',
-    status: 'SCHEDULED',
-    minPrice: 210000,
-    priceLabel: 'VIP 210,000원~',
-  },
-]
+interface ConcertsState {
+  data: Concert[]
+  loading: boolean
+  error: string | null
+}
+
+function useConcerts() {
+  const [state, setState] = useState<ConcertsState>({
+    data: [],
+    loading: true,
+    error: null,
+  })
+
+  const fetch = useCallback(async () => {
+    setState((s) => ({ ...s, loading: true, error: null }))
+    try {
+      const list = await api.get<Concert[]>('/api/concerts')
+      setState({ data: list, loading: false, error: null })
+    } catch {
+      setState({ data: [], loading: false, error: '공연 목록을 불러오지 못했습니다' })
+    }
+  }, [])
+
+  useEffect(() => {
+    fetch()
+  }, [fetch])
+
+  return { ...state, retry: fetch }
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'ALL', label: '전체' },
@@ -101,6 +64,24 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'ON_SALE', label: '판매 중' },
   { key: 'SOLD_OUT', label: '매진' },
   { key: 'ENDED', label: '판매 종료' },
+]
+
+const POSTER_GRADIENTS = [
+  'from-purple-900 via-violet-800 to-blue-900',
+  'from-blue-900 via-indigo-800 to-purple-900',
+  'from-violet-900 via-purple-800 to-pink-900',
+  'from-indigo-900 via-blue-800 to-cyan-900',
+  'from-pink-900 via-rose-800 to-purple-900',
+  'from-cyan-900 via-blue-800 to-indigo-900',
+]
+
+const POSTER_GRADIENTS_LIGHT = [
+  'from-purple-200 via-violet-100 to-blue-200',
+  'from-blue-200 via-indigo-100 to-purple-200',
+  'from-violet-200 via-purple-100 to-pink-200',
+  'from-indigo-200 via-blue-100 to-cyan-200',
+  'from-pink-200 via-rose-100 to-purple-200',
+  'from-cyan-200 via-blue-100 to-indigo-200',
 ]
 
 // ---------------------------------------------------------------------------
@@ -194,42 +175,66 @@ function StatusBadge({ status, dark }: { status: ConcertStatus; dark: boolean })
 }
 
 // ---------------------------------------------------------------------------
-// Poster gradient placeholder
+// Skeleton card (loading)
 // ---------------------------------------------------------------------------
 
-const POSTER_GRADIENTS = [
-  'from-purple-900 via-violet-800 to-blue-900',
-  'from-blue-900 via-indigo-800 to-purple-900',
-  'from-violet-900 via-purple-800 to-pink-900',
-  'from-indigo-900 via-blue-800 to-cyan-900',
-  'from-pink-900 via-rose-800 to-purple-900',
-  'from-cyan-900 via-blue-800 to-indigo-900',
-]
-
-const POSTER_GRADIENTS_LIGHT = [
-  'from-purple-200 via-violet-100 to-blue-200',
-  'from-blue-200 via-indigo-100 to-purple-200',
-  'from-violet-200 via-purple-100 to-pink-200',
-  'from-indigo-200 via-blue-100 to-cyan-200',
-  'from-pink-200 via-rose-100 to-purple-200',
-  'from-cyan-200 via-blue-100 to-indigo-200',
-]
+function SkeletonCard({ dark }: { dark: boolean }) {
+  const shimmer = dark ? 'bg-white/10' : 'bg-gray-200'
+  return (
+    <div
+      className={cn(
+        'rounded-xl overflow-hidden border',
+        dark ? 'bg-[#1c1f30] border-[#4a4455]' : 'bg-white border-[#e5e7eb]',
+      )}
+    >
+      {/* poster */}
+      <div className={cn('w-full aspect-video animate-pulse', shimmer)} />
+      {/* body */}
+      <div className="p-5 flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
+          <div className={cn('h-4 w-3/4 rounded animate-pulse', shimmer)} />
+          <div className={cn('h-3 w-1/3 rounded animate-pulse', shimmer)} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className={cn('h-3 w-1/2 rounded animate-pulse', shimmer)} />
+          <div className={cn('h-3 w-2/3 rounded animate-pulse', shimmer)} />
+        </div>
+        <div className={cn('border-t pt-3', dark ? 'border-[#4a4455]' : 'border-[#f3f4f6]')}>
+          <div className="flex justify-between items-center">
+            <div className={cn('h-3 w-1/4 rounded animate-pulse', shimmer)} />
+            <div className={cn('h-9 w-24 rounded-lg animate-pulse', shimmer)} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
-// Concert Card
+// Concert card
 // ---------------------------------------------------------------------------
 
-interface ConcertCardProps {
+function ConcertCard({
+  concert,
+  dark,
+  index,
+  onBook,
+}: {
   concert: Concert
   dark: boolean
   index: number
   onBook: (id: string) => void
-}
-
-function ConcertCard({ concert, dark, index, onBook }: ConcertCardProps) {
+}) {
   const gradients = dark ? POSTER_GRADIENTS : POSTER_GRADIENTS_LIGHT
   const gradient = gradients[index % gradients.length]
   const isEnded = concert.status === 'ENDED'
+
+  const labelMap: Record<ConcertStatus, string> = {
+    ON_SALE: '티켓 예매',
+    SCHEDULED: '판매 예정',
+    SOLD_OUT: '매진',
+    ENDED: '판매 종료',
+  }
 
   return (
     <div
@@ -249,7 +254,6 @@ function ConcertCard({ concert, dark, index, onBook }: ConcertCardProps) {
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
-        {/* Status badge */}
         <div className="absolute top-3 left-3">
           <StatusBadge status={concert.status} dark={dark} />
         </div>
@@ -262,8 +266,12 @@ function ConcertCard({ concert, dark, index, onBook }: ConcertCardProps) {
             className={cn(
               'font-display font-bold text-[17px] leading-snug line-clamp-2 mb-1',
               isEnded
-                ? dark ? 'text-[#958da1] line-through' : 'text-gray-400 line-through'
-                : dark ? 'text-white' : 'text-[#111827]',
+                ? dark
+                  ? 'text-[#958da1] line-through'
+                  : 'text-gray-400 line-through'
+                : dark
+                  ? 'text-white'
+                  : 'text-[#111827]',
             )}
           >
             {concert.title}
@@ -285,74 +293,37 @@ function ConcertCard({ concert, dark, index, onBook }: ConcertCardProps) {
         </div>
 
         <div className={cn('border-t pt-3', dark ? 'border-[#4a4455]' : 'border-[#f3f4f6]')}>
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={cn(
-                'text-sm font-semibold font-display',
-                isEnded
-                  ? dark ? 'text-[#958da1]' : 'text-gray-400'
-                  : dark ? 'text-[#d2bbff]' : 'text-[#7c3aed]',
-              )}
-            >
-              {concert.priceLabel}
-            </span>
-            <BookButton concert={concert} dark={dark} onBook={onBook} />
+          <div className="flex items-center justify-end">
+            {concert.status === 'ON_SALE' ? (
+              <button
+                onClick={() => onBook(concert.id)}
+                className={cn(
+                  'px-4 h-9 rounded-lg text-sm font-semibold font-display text-white',
+                  'bg-[#7c3aed] hover:bg-[#6d28d9] active:scale-95 transition-all duration-200',
+                  'hover:shadow-[0_0_15px_rgba(124,58,237,0.5)]',
+                )}
+              >
+                티켓 예매
+              </button>
+            ) : (
+              <button
+                disabled
+                className={cn(
+                  'px-4 h-9 rounded-lg text-sm font-semibold cursor-not-allowed',
+                  dark
+                    ? 'bg-[#313446] text-[#958da1]'
+                    : concert.status === 'SOLD_OUT'
+                      ? 'bg-red-50 text-red-400'
+                      : 'bg-gray-100 text-gray-400',
+                )}
+              >
+                {labelMap[concert.status]}
+              </button>
+            )}
           </div>
         </div>
       </div>
     </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Book button
-// ---------------------------------------------------------------------------
-
-function BookButton({
-  concert,
-  dark,
-  onBook,
-}: {
-  concert: Concert
-  dark: boolean
-  onBook: (id: string) => void
-}) {
-  if (concert.status === 'ON_SALE') {
-    return (
-      <button
-        onClick={() => onBook(concert.id)}
-        className={cn(
-          'flex-shrink-0 px-4 h-9 rounded-lg text-sm font-semibold font-display text-white transition-all duration-200',
-          'bg-[#7c3aed] hover:bg-[#6d28d9] active:scale-95',
-          'hover:shadow-[0_0_15px_rgba(124,58,237,0.5)]',
-        )}
-      >
-        티켓 예매
-      </button>
-    )
-  }
-
-  const labelMap: Record<ConcertStatus, string> = {
-    ON_SALE: '티켓 예매',
-    SCHEDULED: '판매 예정',
-    SOLD_OUT: '매진',
-    ENDED: '판매 종료',
-  }
-
-  return (
-    <button
-      disabled
-      className={cn(
-        'flex-shrink-0 px-4 h-9 rounded-lg text-sm font-semibold cursor-not-allowed',
-        dark
-          ? 'bg-[#313446] text-[#958da1]'
-          : concert.status === 'SOLD_OUT'
-            ? 'bg-red-50 text-red-400'
-            : 'bg-gray-100 text-gray-400',
-      )}
-    >
-      {labelMap[concert.status]}
-    </button>
   )
 }
 
@@ -371,16 +342,44 @@ function EmptyState({ dark, tab }: { dark: boolean; tab: FilterTab }) {
   return (
     <div
       className={cn(
-        'col-span-3 flex flex-col items-center justify-center py-20 gap-4 rounded-xl border',
+        'col-span-full flex flex-col items-center justify-center py-20 gap-4 rounded-xl border',
         dark ? 'bg-[#1c1f30] border-[#4a4455] text-[#ccc3d8]' : 'bg-white border-[#e5e7eb] text-[#6b7280]',
       )}
     >
       <Icon name="confirmation_number" className="text-[56px] opacity-30" />
       <div className="text-center">
-        <p className="font-semibold text-base mb-1">
-          현재 {labelMap[tab]}이 없습니다
-        </p>
+        <p className="font-semibold text-base mb-1">현재 {labelMap[tab]}이 없습니다</p>
         <p className="text-sm opacity-70">다른 탭을 선택해보세요</p>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Error state
+// ---------------------------------------------------------------------------
+
+function ErrorState({ dark, message, onRetry }: { dark: boolean; message: string; onRetry: () => void }) {
+  return (
+    <div
+      className={cn(
+        'col-span-full flex flex-col items-center justify-center py-20 gap-4 rounded-xl border',
+        dark ? 'bg-[#1c1f30] border-[#4a4455] text-[#ccc3d8]' : 'bg-white border-[#e5e7eb] text-[#6b7280]',
+      )}
+    >
+      <Icon name="error_outline" className="text-[56px] text-red-400 opacity-80" />
+      <div className="text-center">
+        <p className="font-semibold text-base mb-1">{message}</p>
+        <p className="text-sm opacity-70 mb-4">잠시 후 다시 시도해주세요</p>
+        <button
+          onClick={onRetry}
+          className={cn(
+            'px-5 h-9 rounded-lg text-sm font-semibold transition-all duration-200',
+            'bg-[#7c3aed] text-white hover:bg-[#6d28d9] hover:shadow-[0_0_15px_rgba(124,58,237,0.4)] active:scale-95',
+          )}
+        >
+          다시 시도
+        </button>
       </div>
     </div>
   )
@@ -390,15 +389,7 @@ function EmptyState({ dark, tab }: { dark: boolean; tab: FilterTab }) {
 // Navbar
 // ---------------------------------------------------------------------------
 
-function Navbar({
-  dark,
-  onToggle,
-  nickname,
-}: {
-  dark: boolean
-  onToggle: () => void
-  nickname?: string
-}) {
+function Navbar({ dark, onToggle, nickname }: { dark: boolean; onToggle: () => void; nickname?: string }) {
   return (
     <nav
       className={cn(
@@ -461,7 +452,7 @@ function Navbar({
             ) : (
               <span
                 className={cn(
-                  'text-sm font-medium w-12 h-3.5 rounded animate-pulse',
+                  'w-12 h-3.5 rounded animate-pulse',
                   dark ? 'bg-white/10' : 'bg-[#7c3aed]/10',
                 )}
               />
@@ -521,6 +512,8 @@ export default function ConcertsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL')
   const [nickname, setNickname] = useState<string | undefined>(undefined)
 
+  const { data: concerts, loading, error, retry } = useConcerts()
+
   useEffect(() => {
     api
       .get<{ nickname: string }>('/api/auth/me')
@@ -529,13 +522,7 @@ export default function ConcertsPage() {
   }, [])
 
   const filtered =
-    activeTab === 'ALL'
-      ? DUMMY_CONCERTS
-      : DUMMY_CONCERTS.filter((c) => c.status === activeTab)
-
-  function handleBook(concertId: string) {
-    navigate(`/queue/${concertId}`)
-  }
+    activeTab === 'ALL' ? concerts : concerts.filter((c) => c.status === activeTab)
 
   return (
     <div className={dark ? 'dark' : ''}>
@@ -588,7 +575,13 @@ export default function ConcertsPage() {
 
             {/* Concert grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <SkeletonCard key={i} dark={dark} />
+                ))
+              ) : error ? (
+                <ErrorState dark={dark} message={error} onRetry={retry} />
+              ) : filtered.length === 0 ? (
                 <EmptyState dark={dark} tab={activeTab} />
               ) : (
                 filtered.map((concert, idx) => (
@@ -597,7 +590,7 @@ export default function ConcertsPage() {
                     concert={concert}
                     dark={dark}
                     index={idx}
-                    onBook={handleBook}
+                    onBook={(id) => navigate(`/queue/${id}`)}
                   />
                 ))
               )}
