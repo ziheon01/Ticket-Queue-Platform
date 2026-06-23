@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import ConcertsPage from '@/pages/ConcertsPage'
+import ConcertDetailPage from '@/pages/ConcertDetailPage'
 import QueuePage from '@/pages/QueuePage'
 import LoginPage from '@/pages/LoginPage'
 
@@ -13,6 +14,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ConcertsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/concerts/:concertId"
+        element={
+          <ProtectedRoute>
+            <ConcertDetailPage />
           </ProtectedRoute>
         }
       />

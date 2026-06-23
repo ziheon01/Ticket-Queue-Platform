@@ -115,3 +115,15 @@
   에러: ErrorState + "다시 시도" 버튼 (retry 재호출)
   Concert 타입에서 minPrice·priceLabel 제거 (API 응답에 없음)
 다음: 공연 상세 페이지 또는 예매/결제 화면 구현
+[2026-06-23] Stitch 공연 상세 화면 생성 + ConcertDetailPage.tsx 구현 완료 (typecheck·빌드 통과).
+  Stitch: 다크(58883152) + 라이트(2f448695) 2종 데스크탑 화면 프로젝트에 추가
+  신규: client/src/pages/ConcertDetailPage.tsx
+    - useParams concertId → GET /api/concerts/:id 호출
+    - 2단 레이아웃: 좌(58%) 시네마틱 포스터, 우(42%) 공연 정보 카드
+    - 구역별 티켓 카드: 잔여석 0 → SOLD OUT/회색, ≤10 → 빨강 마감임박 배지
+    - CTA: ON_SALE & 잔여석 있음 → "대기열 진입하기" 활성, 전매진 → 비활성, 그 외 상태별 텍스트
+    - 스켈레톤 로딩, 에러(목록으로/다시시도) 상태 처리
+    - 안내 박스: 대기열 방식 안내 + 주의사항(경고 스타일)
+  수정: App.tsx — /concerts/:concertId 라우트 추가 (ProtectedRoute 적용)
+  수정: ConcertsPage.tsx — 카드 클릭 시 /queue/:id → /concerts/:id 로 변경
+다음: 예매/결제 화면 구현 또는 전체 플로우 E2E 테스트

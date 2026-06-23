@@ -590,7 +590,7 @@ export default function ConcertsPage() {
                     concert={concert}
                     dark={dark}
                     index={idx}
-                    onBook={(id) => navigate(`/queue/${id}`)}
+                    onBook={(id) => navigate(`/concerts/${id}`)}
                   />
                 ))
               )}
