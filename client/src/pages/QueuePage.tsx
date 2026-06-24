@@ -468,7 +468,7 @@ function QueuePanel({ dark, position, total, isConnected, onLeave }: QueuePanelP
 // Admitted banner
 // ---------------------------------------------------------------------------
 
-function AdmittedBanner({ dark }: { dark: boolean }) {
+function AdmittedBanner({ dark, onSelectZone }: { dark: boolean; onSelectZone: () => void }) {
   return (
     <div
       className={cn(
@@ -486,9 +486,16 @@ function AdmittedBanner({ dark }: { dark: boolean }) {
           입장이 허가되었습니다!
         </h3>
         <p className={cn('text-sm', dark ? 'text-emerald-300' : 'text-emerald-700')}>
-          구역 및 수량 선택 화면으로 이동합니다.
+          5분 안에 구역을 선택하고 결제를 완료하세요.
         </p>
       </div>
+      <button
+        onClick={onSelectZone}
+        className="flex items-center gap-2 px-8 py-3 rounded-full font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30"
+      >
+        <Icon name="confirmation_number" className="text-[20px]" />
+        구역 선택하러 가기
+      </button>
     </div>
   )
 }
@@ -623,7 +630,12 @@ export default function QueuePage() {
 
                 {/* 우: 대기열 패널 */}
                 <div className="w-full md:w-[60%]">
-                  {phase === 'admitted' && <AdmittedBanner dark={dark} />}
+                  {phase === 'admitted' && (
+                    <AdmittedBanner
+                      dark={dark}
+                      onSelectZone={() => navigate(`/reservation/${concertId}`)}
+                    />
+                  )}
 
                   {(phase === 'idle' || phase === 'entering') && (
                     <IdleView

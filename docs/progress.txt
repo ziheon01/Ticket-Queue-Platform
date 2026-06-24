@@ -127,3 +127,17 @@
   수정: App.tsx — /concerts/:concertId 라우트 추가 (ProtectedRoute 적용)
   수정: ConcertsPage.tsx — 카드 클릭 시 /queue/:id → /concerts/:id 로 변경
 다음: 예매/결제 화면 구현 또는 전체 플로우 E2E 테스트
+[2026-06-24] ReservationPage.tsx 구현 완료 (typecheck·빌드 통과).
+  신규: client/src/pages/ReservationPage.tsx
+    - 5분 타이머 카운트다운 (useEffect setInterval), 타이머 0 → /concerts/:id 리다이렉트
+    - TimerBanner: sticky top-16, 남은시간 진행률바, 1분 이하 animate-pulse + 빨간 그라디언트
+    - "시간 연장" 버튼: 1분 이하 & 미연장 시 활성, 클릭 시 300초 리셋 (API 연결은 TODO)
+    - GET /api/concerts/:id로 구역 데이터 로드 + GET /api/auth/me 닉네임 병렬 조회
+    - ZoneCard: 구역 선택(보라 테두리+check), SOLD OUT(회색 dimmed), 마감임박(빨강 배지)
+    - 수량 선택: -/+ 버튼 (1~4, 잔여석 초과 불가), 구역 선택 후 표시
+    - 주문 요약 (sticky lg:top-32): 공연/구역/수량/단가/총액, 결제 버튼
+    - 결제 버튼: POST /api/reservations 호출 후 alert (TossPayments SDK 연동은 TODO)
+    - 로딩 스켈레톤, 에러 상태 처리
+  수정: QueuePage.tsx — AdmittedBanner에 "구역 선택하러 가기" 버튼 추가 → navigate('/reservation/:id')
+  수정: App.tsx — /reservation/:concertId 라우트 추가 (ProtectedRoute 적용)
+다음: TossPayments SDK 연동 또는 예매 내역 페이지 구현

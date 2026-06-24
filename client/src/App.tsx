@@ -3,6 +3,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import ConcertsPage from '@/pages/ConcertsPage'
 import ConcertDetailPage from '@/pages/ConcertDetailPage'
 import QueuePage from '@/pages/QueuePage'
+import ReservationPage from '@/pages/ReservationPage'
 import LoginPage from '@/pages/LoginPage'
 
 function AppRoutes() {
@@ -30,6 +31,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <QueuePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reservation/:concertId"
+        element={
+          <ProtectedRoute>
+            <ReservationPage />
           </ProtectedRoute>
         }
       />
