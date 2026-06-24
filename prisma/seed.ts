@@ -2,6 +2,9 @@ import 'dotenv/config';
 import { PrismaClient } from '../src/generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcrypt';
+import Redis from 'ioredis';
+
+const redis = new Redis({ host: 'localhost', port: 6380 });
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -51,12 +54,19 @@ async function main() {
     include: { zones: true },
   });
 
+  // Redis 재고 초기화
+  await Promise.all(
+    concert.zones.map(z =>
+      redis.set(`zone:${z.id}:stock`, z.remainQuantity),
+    ),
+  );
+
   console.log('Seed 완료:');
   console.log(`  어드민: ${admin.email} / admin1234!`);
   console.log(`  유저:   ${user.email} / user1234!`);
   console.log(`  콘서트: ${concert.title} (${concert.status})`);
   concert.zones.forEach(z =>
-    console.log(`    구역 ${z.name}: ${z.price.toLocaleString()}원, ${z.totalQuantity}석`),
+    console.log(`    구역 ${z.name}: ${z.price.toLocaleString()}원, ${z.totalQuantity}석  (Redis zone:${z.id}:stock = ${z.remainQuantity})`),
   );
 }
 
@@ -65,4 +75,7 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+    await redis.quit();
+  });
