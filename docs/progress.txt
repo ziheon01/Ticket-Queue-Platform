@@ -141,3 +141,19 @@
   수정: QueuePage.tsx — AdmittedBanner에 "구역 선택하러 가기" 버튼 추가 → navigate('/reservation/:id')
   수정: App.tsx — /reservation/:concertId 라우트 추가 (ProtectedRoute 적용)
 다음: TossPayments SDK 연동 또는 예매 내역 페이지 구현
+[2026-06-25] ReservationPage.tsx TossPayments 결제 연동 + 시간 연장 API 연결 완료 (typecheck·빌드 통과).
+  설치: @tosspayments/tosspayments-sdk
+  환경변수: client/.env에 VITE_TOSS_CLIENT_KEY 추가 (테스트 키 직접 설정 필요)
+  handlePay 로직:
+    1. reservationId 없으면 POST /api/reservations → reservationId·remainSeconds 획득
+    2. loadTossPayments(VITE_TOSS_CLIENT_KEY) → payment({ customerKey: userId })
+    3. payment.requestPayment({ method: 'CARD', amount, orderId: reservationId, ... }) Promise 방식
+       - PC: iframe 결제창 (Promise resolve 시 navigate('/reservations'))
+       - 모바일 폴백: successUrl/failUrl redirect 지정 (failUrl은 /reservation/:id?code=...)
+    4. UserCancelError 개별 처리 → "결제를 취소했습니다." 에러 메시지
+  handleExtend 로직:
+    - reservationId 있을 때만 POST /api/reservations/:id/extend
+    - 성공 시 remainSeconds 백엔드 값으로 업데이트 + extended=true
+  URL 파라미터 처리: 모바일 failUrl 리다이렉트 후 ?code=USER_CANCEL&message=... 에러 표시
+  userId: GET /api/auth/me에서 id 필드 추가 조회 → TossPayments customerKey로 사용
+다음: 예매 내역 페이지(/reservations) 구현 또는 E2E 테스트

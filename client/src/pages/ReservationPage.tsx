@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import axios from 'axios'
 
 // ---------------------------------------------------------------------------
@@ -450,15 +451,18 @@ function Footer({ dark }: { dark: boolean }) {
 export default function ReservationPage() {
   const { concertId } = useParams<{ concertId: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [dark, setDark] = useState(() => {
     return document.documentElement.classList.contains('dark')
   })
   const [nickname, setNickname] = useState<string | undefined>()
+  const [userId, setUserId] = useState<string | null>(null)
   const [concert, setConcert] = useState<Concert | null>(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
+  const [reservationId, setReservationId] = useState<string | null>(null)
   const [remainSeconds, setRemainSeconds] = useState(300)
   const [extended, setExtended] = useState(false)
 
@@ -475,7 +479,20 @@ export default function ReservationPage() {
     document.documentElement.classList.toggle('dark', dark)
   }, [dark])
 
-  // ── 공연 정보 + 닉네임 조회 ──────────────────────────────────
+  // ── URL 파라미터로 전달된 결제 실패 에러 처리 ───────────────
+  useEffect(() => {
+    const code = searchParams.get('code')
+    const message = searchParams.get('message')
+    if (code) {
+      setPayError(
+        code === 'USER_CANCEL'
+          ? '결제를 취소했습니다.'
+          : message ?? `결제 실패 (${code})`,
+      )
+    }
+  }, [searchParams])
+
+  // ── 공연 정보 + 사용자 정보 조회 ─────────────────────────────
   useEffect(() => {
     if (!concertId) return
     let cancelled = false
@@ -484,11 +501,12 @@ export default function ReservationPage() {
       try {
         const [concertData, user] = await Promise.all([
           api.get<Concert>(`/api/concerts/${concertId}`),
-          api.get<{ nickname: string }>('/api/auth/me'),
+          api.get<{ id: string; nickname: string }>('/api/auth/me'),
         ])
         if (cancelled) return
         setConcert(concertData)
         setNickname(user.nickname)
+        setUserId(user.id)
       } catch (err) {
         if (cancelled) return
         const msg = axios.isAxiosError(err)
@@ -517,43 +535,75 @@ export default function ReservationPage() {
   }, [remainSeconds, concertId, navigate])
 
   // ── 시간 연장 ─────────────────────────────────────────────────
-  // TODO: reservationId를 받으면 POST /api/reservations/:id/extend 호출
-  const handleExtend = useCallback(() => {
-    setExtended(true)
-    setRemainSeconds(300)
-  }, [])
-
-  // ── 결제 시작 ─────────────────────────────────────────────────
-  // TODO: POST /api/reservations → reservationId 획득 → TossPayments SDK 호출
-  const handlePay = useCallback(async () => {
-    if (!selectedZoneId || !concertId) return
-    setIsPaying(true)
+  const handleExtend = useCallback(async () => {
+    if (!reservationId) return
     setPayError(null)
     try {
-      const result = await api.post<{ reservationId: string; totalPrice: number; remainSeconds: number }>(
-        '/api/reservations',
-        { concertZoneId: selectedZoneId, quantity },
+      const result = await api.post<{ remainSeconds: number }>(
+        `/api/reservations/${reservationId}/extend`,
       )
       setRemainSeconds(result.remainSeconds)
-      // TODO: TossPayments SDK로 결제 창 열기
-      // const toss = await loadTossPayments(import.meta.env.VITE_TOSS_CLIENT_KEY)
-      // await toss.requestPayment('카드', {
-      //   amount: result.totalPrice,
-      //   orderId: result.reservationId,
-      //   orderName: `${concert?.title} ${selectedZone?.name} ${quantity}매`,
-      //   successUrl: window.location.origin + '/reservations',
-      //   failUrl: window.location.origin + `/reservation/${concertId}`,
-      // })
-      alert(`예매가 생성됐습니다 (ID: ${result.reservationId})\n토스페이먼츠 SDK 연동은 다음 단계에서 추가됩니다.`)
+      setExtended(true)
     } catch (err) {
       const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.message ?? '결제 중 오류가 발생했습니다')
-        : '결제 중 오류가 발생했습니다'
+        ? (err.response?.data?.message ?? '시간 연장에 실패했습니다')
+        : '시간 연장에 실패했습니다'
       setPayError(msg)
+    }
+  }, [reservationId])
+
+  // ── 결제 시작 ─────────────────────────────────────────────────
+  const handlePay = useCallback(async () => {
+    if (!selectedZoneId || !concertId || !concert || !selectedZone || !userId) return
+    setIsPaying(true)
+    setPayError(null)
+
+    let newReservationId = reservationId
+
+    try {
+      // 아직 예매가 없는 경우에만 생성
+      if (!newReservationId) {
+        const reserved = await api.post<{ reservationId: string; totalPrice: number; remainSeconds: number }>(
+          '/api/reservations',
+          { concertZoneId: selectedZoneId, quantity },
+        )
+        newReservationId = reserved.reservationId
+        setReservationId(newReservationId)
+        setRemainSeconds(reserved.remainSeconds)
+      }
+
+      // TossPayments 결제창 (Promise 방식 — PC iframe)
+      const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY as string
+      const tossPayments = await loadTossPayments(clientKey)
+      const payment = tossPayments.payment({ customerKey: userId })
+
+      await payment.requestPayment({
+        method: 'CARD',
+        amount: { currency: 'KRW', value: totalPrice },
+        orderId: newReservationId,
+        orderName: `${concert.title} ${selectedZone.name}`,
+        customerName: nickname,
+        // 모바일 리다이렉트 대비 (PC에서는 Promise 방식으로 동작, 아래 URL은 모바일 폴백)
+        successUrl: `${window.location.origin}/reservations`,
+        failUrl: `${window.location.origin}/reservation/${concertId}`,
+      })
+
+      // Promise 방식 성공 시 여기까지 도달 (모바일 redirect 시에는 도달 안 함)
+      navigate('/reservations', { replace: true })
+    } catch (err) {
+      // Toss UserCancelError 또는 그 외 에러
+      const tossCode = (err as { code?: string }).code
+      if (tossCode === 'USER_CANCEL') {
+        setPayError('결제를 취소했습니다.')
+      } else if (axios.isAxiosError(err)) {
+        setPayError(err.response?.data?.message ?? '결제 중 오류가 발생했습니다')
+      } else {
+        setPayError((err as Error).message ?? '결제 중 오류가 발생했습니다')
+      }
     } finally {
       setIsPaying(false)
     }
-  }, [selectedZoneId, quantity, concertId, concert, selectedZone])
+  }, [selectedZoneId, quantity, concertId, concert, selectedZone, userId, nickname, totalPrice, reservationId, navigate])
 
   const canPay = !!selectedZoneId && remainSeconds > 0 && !isPaying
 
