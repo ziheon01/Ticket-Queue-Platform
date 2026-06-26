@@ -187,4 +187,5 @@
   수정: client/src/index.css (Tailwind v3 호환 CSS 변수 재작성)
   ConcertDetailPage: 로고 클릭 navigate('/'), 네비 버튼 navigate 연결 추가
   ReservationPage: 네비 버튼 nav 구조 개선 (마이페이지 → /reservations 연결)
+[2026-06-26] Navbar 공통 컴포넌트 추출 완료 (typecheck·빌드 통과).
 다음: 전체 플로우 E2E 테스트 또는 추가 기능 구현
