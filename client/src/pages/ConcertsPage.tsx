@@ -390,6 +390,7 @@ function ErrorState({ dark, message, onRetry }: { dark: boolean; message: string
 // ---------------------------------------------------------------------------
 
 function Navbar({ dark, onToggle, nickname }: { dark: boolean; onToggle: () => void; nickname?: string }) {
+  const navigate = useNavigate()
   return (
     <nav
       className={cn(
@@ -407,14 +408,14 @@ function Navbar({ dark, onToggle, nickname }: { dark: boolean; onToggle: () => v
 
         <div className="hidden md:flex items-center gap-6 text-sm">
           {[
-            { label: '공연', active: true },
-            { label: '티켓팅', active: false },
-            { label: '마이페이지', active: false },
-            { label: '고객센터', active: false },
-          ].map(({ label, active }) => (
-            <a
+            { label: '공연', active: true, href: '/' },
+            { label: '티켓팅', active: false, href: '/' },
+            { label: '마이페이지', active: false, href: '/reservations' },
+            { label: '고객센터', active: false, href: '#' },
+          ].map(({ label, active, href }) => (
+            <button
               key={label}
-              href="#"
+              onClick={() => (href !== '#' ? navigate(href) : undefined)}
               className={cn(
                 'transition-colors duration-200',
                 active
@@ -425,7 +426,7 @@ function Navbar({ dark, onToggle, nickname }: { dark: boolean; onToggle: () => v
               )}
             >
               {label}
-            </a>
+            </button>
           ))}
         </div>
 

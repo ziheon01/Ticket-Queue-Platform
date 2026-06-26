@@ -4,6 +4,7 @@ import ConcertsPage from '@/pages/ConcertsPage'
 import ConcertDetailPage from '@/pages/ConcertDetailPage'
 import QueuePage from '@/pages/QueuePage'
 import ReservationPage from '@/pages/ReservationPage'
+import ReservationsPage from '@/pages/ReservationsPage'
 import LoginPage from '@/pages/LoginPage'
 
 function AppRoutes() {
@@ -39,6 +40,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ReservationPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reservations"
+        element={
+          <ProtectedRoute>
+            <ReservationsPage />
           </ProtectedRoute>
         }
       />

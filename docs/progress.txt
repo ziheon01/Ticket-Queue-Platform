@@ -157,3 +157,21 @@
   URL 파라미터 처리: 모바일 failUrl 리다이렉트 후 ?code=USER_CANCEL&message=... 에러 표시
   userId: GET /api/auth/me에서 id 필드 추가 조회 → TossPayments customerKey로 사용
 다음: 예매 내역 페이지(/reservations) 구현 또는 E2E 테스트
+[2026-06-26] Stitch 예매 내역 페이지 생성 완료 (프로젝트 236975419009576561).
+  다크 모드: screen a1d082ed (VIBE TICKETS - My Reservations Dark)
+  라이트 모드: screen dfc1b921 (VIBE TICKETS - My Reservations Light)
+  디자인 요소: 예매카드 3종 상태 배지(CONFIRMED/PENDING/EXPIRED), 취소 버튼, 빈 상태 UI
+다음: ReservationsPage.tsx 구현 (예매 내역 목록 + 취소 기능)
+[2026-06-26] ReservationsPage.tsx 구현 완료 (typecheck·빌드 통과).
+  신규: client/src/pages/ReservationsPage.tsx
+    - useReservations 훅: GET /api/reservations 호출
+    - 스켈레톤 로딩(3개), 에러 상태(재시도), 빈 상태("공연 보러가기" → /)
+    - ReservationCard: 공연명/아티스트/날짜/장소/구역+수량/금액/예매일 + 상태 배지
+    - 상태 배지: PENDING(노랑), CONFIRMED(초록), CANCELLED(회색), EXPIRED(빨강)
+    - PENDING만 "예매 취소" 버튼 → CancelDialog (확인/취소) → DELETE /api/reservations/:id → retry
+    - Navbar: 마이페이지 active, 로고/공연 버튼 navigate('/'), 테마 토글
+  수정: App.tsx — /reservations 라우트 추가 (ProtectedRoute)
+  수정: ConcertsPage.tsx — Navbar 마이페이지 버튼 navigate('/reservations') 연결
+  브라우저 테스트: WSL 환경 shared library 누락으로 headless 불가
+    → curl 기반 API 검증 통과 (GET/EXPIRED취소400/상세조회), 빌드·타입체크 정상
+다음: Navbar 컴포넌트에 닉네임 클릭시 드롭다운 추가 + 다크/라이트 모드 변환 오류 수정
