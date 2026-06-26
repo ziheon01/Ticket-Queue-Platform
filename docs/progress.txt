@@ -175,3 +175,16 @@
   브라우저 테스트: WSL 환경 shared library 누락으로 headless 불가
     → curl 기반 API 검증 통과 (GET/EXPIRED취소400/상세조회), 빌드·타입체크 정상
 다음: Navbar 컴포넌트에 닉네임 클릭시 드롭다운 추가 + 다크/라이트 모드 변환 오류 수정
+[2026-06-26] 전체 Navbar 드롭다운 메뉴 구현 완료 (typecheck·빌드 통과).
+  구현: 5개 페이지(ConcertsPage/ConcertDetailPage/QueuePage/ReservationPage/ReservationsPage) Navbar
+    - @radix-ui/react-dropdown-menu 기반 DropdownMenu 적용
+    - 닉네임 + ChevronDown 아이콘 → 클릭 시 드롭다운 (애니메이션 포함)
+    - "예매 내역" → navigate('/reservations')
+    - 구분선 → "로그아웃" → POST /api/auth/logout → localStorage.clear() → navigate('/login')
+    - 다크/라이트 테마별 명시적 색상 (Portal 렌더로 CSS 변수 미적용 → inline className으로 처리)
+  신규: client/src/components/ui/dropdown-menu.tsx (Radix UI 기반 shadcn 스타일)
+  신규: client/src/lib/utils.ts (cn 헬퍼)
+  수정: client/src/index.css (Tailwind v3 호환 CSS 변수 재작성)
+  ConcertDetailPage: 로고 클릭 navigate('/'), 네비 버튼 navigate 연결 추가
+  ReservationPage: 네비 버튼 nav 구조 개선 (마이페이지 → /reservations 연결)
+다음: 전체 플로우 E2E 테스트 또는 추가 기능 구현
