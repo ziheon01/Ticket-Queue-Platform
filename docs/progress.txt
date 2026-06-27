@@ -188,4 +188,12 @@
   ConcertDetailPage: 로고 클릭 navigate('/'), 네비 버튼 navigate 연결 추가
   ReservationPage: 네비 버튼 nav 구조 개선 (마이페이지 → /reservations 연결)
 [2026-06-26] Navbar 공통 컴포넌트 추출 완료 (typecheck·빌드 통과).
-다음: 전체 플로우 E2E 테스트 또는 추가 기능 구현
+  신규: client/src/components/Navbar.tsx — useLocation() 기반 active 자동 감지, handleLogout 내장
+  5개 페이지 로컬 Navbar 함수 제거, import 단일화
+  LoginPage는 미인증용 단순 Navbar라 분리 유지
+[2026-06-27] Stitch 어드민 공연 관리 페이지 생성 완료 (프로젝트 236975419009576561).
+  다크 모드: screen ca23f5c0 (VIBE TICKETS Admin Concert Management - Dark)
+  라이트 모드: screen 368307b3 (VIBE TICKETS Admin Concert Management - Light)
+  포함 요소: ADMIN 배지 헤더, 공연 목록 테이블(4행·상태배지·수정/삭제 액션),
+             판매현황 패널(구역별 수량·판매율 progress bar), 공연등록 모달, 빈상태 UI
+다음: AdminConcertPage.tsx 구현 (Stitch 화면 기반)
