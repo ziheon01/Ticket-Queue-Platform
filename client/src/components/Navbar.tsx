@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { api } from '@/api/client'
+import { api, getRole } from '@/api/client'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ interface NavbarProps {
   dark: boolean
   onToggle: () => void
   nickname?: string
+  adminBadge?: boolean
 }
 
 function Icon({ name, className }: { name: string; className?: string }) {
@@ -40,7 +41,8 @@ function isActive(label: string, pathname: string): boolean {
   }
 }
 
-export function Navbar({ dark, onToggle, nickname }: NavbarProps) {
+export function Navbar({ dark, onToggle, nickname, adminBadge }: NavbarProps) {
+  const isAdmin = getRole() === 'ADMIN'
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -66,6 +68,11 @@ export function Navbar({ dark, onToggle, nickname }: NavbarProps) {
           <span className="font-display font-bold text-[20px] tracking-tighter text-[#7c3aed]">
             VIBE TICKETS
           </span>
+          {adminBadge && (
+            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[#7c3aed]/20 text-[#d2bbff] border border-[#7c3aed]/40">
+              ADMIN
+            </span>
+          )}
         </button>
 
         <div className="hidden md:flex items-center gap-6 text-sm">
@@ -143,6 +150,18 @@ export function Navbar({ dark, onToggle, nickname }: NavbarProps) {
                 <Icon name="confirmation_number" className="text-[15px]" />
                 예매 내역
               </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem
+                  className={cn(
+                    'cursor-pointer gap-2 text-sm',
+                    dark ? 'focus:bg-[#26293b] focus:text-white' : 'focus:bg-[#F5F3FF] focus:text-[#1A1D2E]',
+                  )}
+                  onClick={() => navigate('/admin')}
+                >
+                  <Icon name="admin_panel_settings" className="text-[15px]" />
+                  관리자 페이지
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator className={dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]'} />
               <DropdownMenuItem
                 className={cn(

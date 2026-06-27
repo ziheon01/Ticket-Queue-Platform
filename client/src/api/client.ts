@@ -96,6 +96,8 @@ export const api = {
     client.get<ApiResponse<T>>(path).then((r) => r.data.data),
   post: <T>(path: string, body?: unknown) =>
     client.post<ApiResponse<T>>(path, body).then((r) => r.data.data),
+  patch: <T>(path: string, body?: unknown) =>
+    client.patch<ApiResponse<T>>(path, body).then((r) => r.data.data),
   delete: <T>(path: string) =>
     client.delete<ApiResponse<T>>(path).then((r) => r.data.data),
   socketUrl: BASE,
@@ -103,6 +105,19 @@ export const api = {
 
 export function getToken(): string | null {
   return localStorage.getItem('accessToken')
+}
+
+export function getRole(): 'ADMIN' | 'USER' | null {
+  const token = localStorage.getItem('accessToken')
+  if (!token) return null
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(b64)) as { role?: string }
+    if (payload.role === 'ADMIN' || payload.role === 'USER') return payload.role
+    return null
+  } catch {
+    return null
+  }
 }
 
 export default client
