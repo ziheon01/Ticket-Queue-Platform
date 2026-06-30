@@ -58,6 +58,17 @@ const EMPTY_CONCERT_FORM: ConcertForm = {
 
 const EMPTY_ZONE_FORM: ZoneForm = { name: '', price: '', totalQuantity: '' }
 
+interface NewZoneRow {
+  _key: string
+  name: string
+  price: string
+  totalQuantity: string
+}
+
+function makeZoneRow(): NewZoneRow {
+  return { _key: crypto.randomUUID(), name: '', price: '', totalQuantity: '' }
+}
+
 // ---------------------------------------------------------------------------
 // Icon helper
 // ---------------------------------------------------------------------------
@@ -146,6 +157,13 @@ function Footer({ dark }: { dark: boolean }) {
 // Concert Modal (등록/수정)
 // ---------------------------------------------------------------------------
 
+const ZONE_INPUT_CLS = cn(
+  'px-3 py-2 rounded-lg text-sm bg-[#0a0d1d] border border-[#2D3155] text-[#dfe1f9]',
+  'placeholder:text-[#4a4455]',
+  'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30',
+  'transition-colors w-full',
+)
+
 function ConcertModal({
   open,
   mode,
@@ -160,57 +178,102 @@ function ConcertModal({
   onSaved: () => void
 }) {
   const [form, setForm] = useState<ConcertForm>(EMPTY_CONCERT_FORM)
+  const [newZones, setNewZones] = useState<NewZoneRow[]>([makeZoneRow()])
+  const [existingZones, setExistingZones] = useState<ZoneStat[]>([])
+  const [existingZonesLoading, setExistingZonesLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (open) {
-      if (mode === 'edit' && initial) {
-        setForm({
-          title: initial.title,
-          artist: initial.artist,
-          venue: initial.venue,
-          concertDate: initial.concertDate.slice(0, 16),
-          saleStartAt: initial.saleStartAt.slice(0, 16),
-        })
-      } else {
-        setForm(EMPTY_CONCERT_FORM)
-      }
-      setError(null)
+    if (!open) return
+    setError(null)
+    if (mode === 'edit' && initial) {
+      setForm({
+        title: initial.title,
+        artist: initial.artist,
+        venue: initial.venue,
+        concertDate: initial.concertDate.slice(0, 16),
+        saleStartAt: initial.saleStartAt.slice(0, 16),
+      })
+      setNewZones([])
+      setExistingZonesLoading(true)
+      api
+        .get<{ zones: ZoneStat[] }>(`/api/admin/concerts/${initial.id}/stats`)
+        .then((d) => setExistingZones(d.zones))
+        .catch(() => setExistingZones([]))
+        .finally(() => setExistingZonesLoading(false))
+    } else {
+      setForm(EMPTY_CONCERT_FORM)
+      setNewZones([makeZoneRow()])
+      setExistingZones([])
     }
   }, [open, mode, initial])
 
+  const addZoneRow = () => setNewZones((rows) => [...rows, makeZoneRow()])
+  const removeZoneRow = (key: string) =>
+    setNewZones((rows) => rows.filter((r) => r._key !== key))
+  const updateZoneRow = (key: string, field: keyof Omit<NewZoneRow, '_key'>, value: string) =>
+    setNewZones((rows) => rows.map((r) => (r._key === key ? { ...r, [field]: value } : r)))
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Zone validation
+    if (mode === 'create' && newZones.length === 0) {
+      setError('최소 1개 구역을 등록해야 합니다.')
+      return
+    }
+    if (newZones.some((z) => !z.name.trim() || !z.price.trim() || !z.totalQuantity.trim())) {
+      setError('모든 구역의 구역명, 가격, 수량을 입력해주세요.')
+      return
+    }
+
     setSaving(true)
     setError(null)
+    let concertDone = false
+
     try {
-      const body = {
+      const concertBody = {
         ...form,
         concertDate: new Date(form.concertDate).toISOString(),
         saleStartAt: new Date(form.saleStartAt).toISOString(),
       }
+
+      let concertId: string
       if (mode === 'create') {
-        await api.post('/api/admin/concerts', body)
+        const created = await api.post<Concert>('/api/admin/concerts', concertBody)
+        concertId = created.id
       } else {
-        await api.patch(`/api/admin/concerts/${initial!.id}`, body)
+        await api.patch(`/api/admin/concerts/${initial!.id}`, concertBody)
+        concertId = initial!.id
       }
+      concertDone = true
+
+      for (const zone of newZones) {
+        await api.post(`/api/admin/concerts/${concertId}/zones`, {
+          name: zone.name.trim(),
+          price: Number(zone.price),
+          totalQuantity: Number(zone.totalQuantity),
+        })
+      }
+
       onSaved()
       onClose()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '저장에 실패했습니다.'
-      setError(msg)
+      if (concertDone && newZones.length > 0) {
+        const prefix = mode === 'create' ? '공연은 생성됐지만' : '공연은 수정됐지만'
+        setError(`${prefix} 구역 등록 중 오류가 발생했습니다: ${msg}. 공연 수정에서 구역을 추가해주세요.`)
+        onSaved()
+      } else {
+        setError(msg)
+      }
     } finally {
       setSaving(false)
     }
   }
 
-  const field = (
-    key: keyof ConcertForm,
-    label: string,
-    type = 'text',
-    placeholder = '',
-  ) => (
+  const fieldInput = (key: keyof ConcertForm, label: string, type = 'text', placeholder = '') => (
     <div>
       <label className="block text-xs font-mono text-[#958da1] mb-1.5 uppercase tracking-wider">
         {label} *
@@ -241,16 +304,133 @@ function ConcertModal({
             </DialogTitle>
           </DialogHeader>
 
+          {/* Concert info */}
           <div className="flex flex-col gap-4">
-            {field('title', '공연명', 'text', '공연명을 입력하세요')}
-            {field('artist', '아티스트', 'text', '아티스트명')}
-            {field('venue', '장소', 'text', '공연 장소')}
-            {field('concertDate', '공연 날짜', 'datetime-local')}
-            {field('saleStartAt', '판매 시작 시간', 'datetime-local')}
+            {fieldInput('title', '공연명', 'text', '공연명을 입력하세요')}
+            {fieldInput('artist', '아티스트', 'text', '아티스트명')}
+            {fieldInput('venue', '장소', 'text', '공연 장소')}
+            {fieldInput('concertDate', '공연 날짜', 'datetime-local')}
+            {fieldInput('saleStartAt', '판매 시작 시간', 'datetime-local')}
+          </div>
+
+          <div className="my-6 border-t border-[#2D3155]" />
+
+          {/* Edit mode: existing zones (read-only) */}
+          {mode === 'edit' && (
+            <div className="mb-6">
+              <p className="text-xs font-mono text-[#958da1] uppercase tracking-wider mb-3">
+                기존 구역
+              </p>
+              {existingZonesLoading ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-9 bg-[#2D3155]/50 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : existingZones.length === 0 ? (
+                <p className="text-sm text-[#4a4455] italic">등록된 구역이 없습니다.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {existingZones.map((z) => (
+                    <div
+                      key={z.id}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#0a0d1d] border border-[#2D3155]"
+                    >
+                      <span className="text-sm text-[#dfe1f9] font-medium">{z.name}</span>
+                      <span className="text-xs font-mono text-[#958da1]">
+                        총 {z.totalQuantity.toLocaleString()}석 · 잔여 {z.remainQuantity.toLocaleString()}석
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-[11px] text-[#4a4455] mt-1.5">
+                    기존 구역 수정은 판매 현황 패널에서 가능합니다.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* New zones */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-mono text-[#958da1] uppercase tracking-wider">
+                {mode === 'create' ? (
+                  <>구역 추가 <span className="text-[#ffb4ab]">*</span></>
+                ) : (
+                  '새 구역 추가'
+                )}
+              </p>
+              {newZones.length > 0 && (
+                <span className="text-[11px] font-mono text-[#4a4455]">{newZones.length}개</span>
+              )}
+            </div>
+
+            {newZones.length > 0 && (
+              <div className="grid grid-cols-[1fr_110px_90px_32px] gap-2 mb-1.5 px-0.5">
+                {['구역명', '가격 (원)', '수량 (석)', ''].map((h) => (
+                  <span key={h} className="text-[10px] font-mono text-[#4a4455] uppercase tracking-wider">
+                    {h}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {newZones.map((row, idx) => (
+                <div key={row._key} className="grid grid-cols-[1fr_110px_90px_32px] gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="예: VIP"
+                    value={row.name}
+                    onChange={(e) => updateZoneRow(row._key, 'name', e.target.value)}
+                    className={ZONE_INPUT_CLS}
+                  />
+                  <input
+                    type="number"
+                    placeholder="150000"
+                    min={0}
+                    value={row.price}
+                    onChange={(e) => updateZoneRow(row._key, 'price', e.target.value)}
+                    className={ZONE_INPUT_CLS}
+                  />
+                  <input
+                    type="number"
+                    placeholder="100"
+                    min={1}
+                    value={row.totalQuantity}
+                    onChange={(e) => updateZoneRow(row._key, 'totalQuantity', e.target.value)}
+                    className={ZONE_INPUT_CLS}
+                  />
+                  <button
+                    type="button"
+                    disabled={mode === 'create' && newZones.length === 1}
+                    onClick={() => removeZoneRow(row._key)}
+                    aria-label={`구역 ${idx + 1} 삭제`}
+                    className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+                      mode === 'create' && newZones.length === 1
+                        ? 'text-[#2D3155] cursor-not-allowed'
+                        : 'text-[#958da1] hover:text-[#ffb4ab] hover:bg-[#93000a]/20',
+                    )}
+                  >
+                    <Icon name="close" className="text-[16px]" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={addZoneRow}
+              className="mt-3 flex items-center gap-1.5 text-xs text-[#7c3aed] hover:text-[#a78bfa] transition-colors"
+            >
+              <Icon name="add_circle" className="text-[16px]" />
+              {mode === 'create' ? '+ 구역 추가' : '+ 새 구역 추가'}
+            </button>
           </div>
 
           {error && (
-            <p className="mt-4 text-sm text-[#ffb4ab] bg-[#93000a]/30 border border-[#93000a] rounded-lg px-3 py-2">
+            <p className="mt-4 text-sm text-[#ffb4ab] bg-[#93000a]/30 border border-[#93000a] rounded-lg px-3 py-2 leading-relaxed">
               {error}
             </p>
           )}
