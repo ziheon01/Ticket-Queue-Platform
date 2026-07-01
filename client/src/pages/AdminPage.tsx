@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
+import { useTheme } from '@/context/ThemeContext'
 import { Navbar } from '@/components/Navbar'
 import {
   Dialog,
@@ -121,7 +122,8 @@ function StatusBadge({ status }: { status: ConcertStatus }) {
 // Footer
 // ---------------------------------------------------------------------------
 
-function Footer({ dark }: { dark: boolean }) {
+function Footer() {
+  const { dark } = useTheme()
   return (
     <footer
       className={cn(
@@ -157,13 +159,6 @@ function Footer({ dark }: { dark: boolean }) {
 // Concert Modal (등록/수정)
 // ---------------------------------------------------------------------------
 
-const ZONE_INPUT_CLS = cn(
-  'px-3 py-2 rounded-lg text-sm bg-[#0a0d1d] border border-[#2D3155] text-[#dfe1f9]',
-  'placeholder:text-[#4a4455]',
-  'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30',
-  'transition-colors w-full',
-)
-
 function ConcertModal({
   open,
   mode,
@@ -177,6 +172,14 @@ function ConcertModal({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { dark } = useTheme()
+  const inputCls = cn(
+    'px-3 py-2 rounded-lg text-sm border',
+    dark ? 'bg-[#0a0d1d] border-[#2D3155] text-[#dfe1f9] placeholder:text-[#4a4455]'
+         : 'bg-[#F5F3FF] border-[#DDD8F0] text-[#1A1D2E] placeholder:text-[#94a3b8]',
+    'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30',
+    'transition-colors w-full',
+  )
   const [form, setForm] = useState<ConcertForm>(EMPTY_CONCERT_FORM)
   const [newZones, setNewZones] = useState<NewZoneRow[]>([makeZoneRow()])
   const [existingZones, setExistingZones] = useState<ZoneStat[]>([])
@@ -285,10 +288,10 @@ function ConcertModal({
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
         placeholder={placeholder}
         className={cn(
-          'w-full px-3 py-2.5 rounded-lg text-sm bg-[#0a0d1d] border border-[#2D3155] text-[#dfe1f9]',
-          'placeholder:text-[#4a4455]',
-          'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30',
-          'transition-colors',
+          'w-full px-3 py-2.5 rounded-lg text-sm border',
+          dark ? 'bg-[#0a0d1d] border-[#2D3155] text-[#dfe1f9] placeholder:text-[#4a4455]'
+               : 'bg-[#F5F3FF] border-[#DDD8F0] text-[#1A1D2E] placeholder:text-[#94a3b8]',
+          'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30 transition-colors',
         )}
       />
     </div>
@@ -296,10 +299,10 @@ function ConcertModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#1c1f30] border border-[#2D3155] text-[#dfe1f9] max-h-[90vh] overflow-y-auto">
+      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', dark ? 'bg-[#1c1f30] border border-[#2D3155] text-[#dfe1f9]' : 'bg-white border border-[#DDD8F0] text-[#1A1D2E]')}>
         <form onSubmit={handleSubmit} className="p-8">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-[#dfe1f9]">
+            <DialogTitle className={dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]'}>
               {mode === 'create' ? '공연 등록' : '공연 수정'}
             </DialogTitle>
           </DialogHeader>
@@ -383,7 +386,7 @@ function ConcertModal({
                     placeholder="예: VIP"
                     value={row.name}
                     onChange={(e) => updateZoneRow(row._key, 'name', e.target.value)}
-                    className={ZONE_INPUT_CLS}
+                    className={inputCls}
                   />
                   <input
                     type="number"
@@ -391,7 +394,7 @@ function ConcertModal({
                     min={0}
                     value={row.price}
                     onChange={(e) => updateZoneRow(row._key, 'price', e.target.value)}
-                    className={ZONE_INPUT_CLS}
+                    className={inputCls}
                   />
                   <input
                     type="number"
@@ -399,7 +402,7 @@ function ConcertModal({
                     min={1}
                     value={row.totalQuantity}
                     onChange={(e) => updateZoneRow(row._key, 'totalQuantity', e.target.value)}
-                    className={ZONE_INPUT_CLS}
+                    className={inputCls}
                   />
                   <button
                     type="button"
@@ -486,6 +489,13 @@ function ZoneModal({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { dark } = useTheme()
+  const inputCls = cn(
+    'w-full px-3 py-2.5 rounded-lg text-sm border',
+    dark ? 'bg-[#0a0d1d] border-[#2D3155] text-[#dfe1f9] placeholder:text-[#4a4455]'
+         : 'bg-[#F5F3FF] border-[#DDD8F0] text-[#1A1D2E] placeholder:text-[#94a3b8]',
+    'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30 transition-colors',
+  )
   const [form, setForm] = useState<ZoneForm>(EMPTY_ZONE_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -520,10 +530,10 @@ function ZoneModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#1c1f30] border border-[#2D3155] text-[#dfe1f9]">
+      <DialogContent className={cn(dark ? 'bg-[#1c1f30] border border-[#2D3155] text-[#dfe1f9]' : 'bg-white border border-[#DDD8F0] text-[#1A1D2E]')}>
         <form onSubmit={handleSubmit} className="p-8">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-[#dfe1f9]">구역 수정 — {zone?.name}</DialogTitle>
+            <DialogTitle className={dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]'}>구역 수정 — {zone?.name}</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
@@ -541,12 +551,7 @@ function ZoneModal({
                   value={form[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   placeholder={ph}
-                  className={cn(
-                    'w-full px-3 py-2.5 rounded-lg text-sm bg-[#0a0d1d] border border-[#2D3155] text-[#dfe1f9]',
-                    'placeholder:text-[#4a4455]',
-                    'focus:outline-none focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed]/30',
-                    'transition-colors',
-                  )}
+                  className={inputCls}
                 />
               </div>
             ))}
@@ -603,6 +608,7 @@ function DeleteDialog({
   onClose: () => void
   onDeleted: () => void
 }) {
+  const { dark } = useTheme()
   const [deleting, setDeleting] = useState(false)
 
   const handleDelete = async () => {
@@ -619,17 +625,17 @@ function DeleteDialog({
 
   return (
     <Dialog open={!!concert} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#1c1f30] border border-[#2D3155] text-[#dfe1f9]">
+      <DialogContent className={cn(dark ? 'bg-[#1c1f30] border border-[#2D3155] text-[#dfe1f9]' : 'bg-white border border-[#DDD8F0] text-[#1A1D2E]')}>
         <div className="p-8">
           <DialogHeader className="mb-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-[#93000a]/30 flex items-center justify-center">
                 <Icon name="warning" className="text-[#ffb4ab] text-[20px]" />
               </div>
-              <DialogTitle className="text-[#dfe1f9]">공연 삭제</DialogTitle>
+              <DialogTitle className={dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]'}>공연 삭제</DialogTitle>
             </div>
-            <p className="text-sm text-[#ccc3d8]">
-              <span className="text-white font-medium">{concert?.title}</span> 공연을 삭제하시겠습니까?
+            <p className={cn('text-sm', dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>
+              <span className={cn('font-medium', dark ? 'text-white' : 'text-[#1A1D2E]')}>{concert?.title}</span> 공연을 삭제하시겠습니까?
               <br />이 작업은 되돌릴 수 없습니다.
             </p>
           </DialogHeader>
@@ -674,13 +680,14 @@ function StatsPanel({
   loading: boolean
   onEditZone: (zone: ZoneStat) => void
 }) {
+  const { dark } = useTheme()
   if (loading) {
     return (
-      <div className="bg-[#1c1f30] border border-[#2D3155] rounded-xl p-6 animate-pulse">
-        <div className="h-5 bg-[#2D3155] rounded w-1/3 mb-4" />
+      <div className={cn('rounded-xl p-6 animate-pulse border', dark ? 'bg-[#1c1f30] border-[#2D3155]' : 'bg-white border-[#DDD8F0]')}>
+        <div className={cn('h-5 rounded w-1/3 mb-4', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-10 bg-[#2D3155] rounded" />
+            <div key={i} className={cn('h-10 rounded', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
           ))}
         </div>
       </div>
@@ -699,14 +706,14 @@ function StatsPanel({
   const soldPct = total.totalQuantity > 0 ? Math.round((soldTotal / total.totalQuantity) * 100) : 0
 
   return (
-    <div className="bg-[#1c1f30] border border-[#2D3155] rounded-xl overflow-hidden">
+    <div className={cn('rounded-xl overflow-hidden border', dark ? 'bg-[#1c1f30] border-[#2D3155]' : 'bg-white border-[#DDD8F0]')}>
       {/* Panel header */}
-      <div className="px-6 py-4 border-b border-[#2D3155] flex items-center justify-between">
+      <div className={cn('px-6 py-4 border-b flex items-center justify-between', dark ? 'border-[#2D3155]' : 'border-[#DDD8F0]')}>
         <div className="flex items-center gap-3">
           <Icon name="bar_chart" className="text-[#7c3aed] text-[22px]" />
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-[#dfe1f9]">{concert.title}</span>
+              <span className={cn('font-semibold', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{concert.title}</span>
               <StatusBadge status={concert.status} />
             </div>
             <p className="text-xs text-[#958da1] mt-0.5 font-mono">
@@ -721,7 +728,7 @@ function StatsPanel({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#2D3155] bg-[#0f1223]">
+            <tr className={cn('border-b', dark ? 'border-[#2D3155] bg-[#0f1223]' : 'border-[#DDD8F0] bg-[#F5F3FF]')}>
               {['구역', '총 수량', '판매됨', '잔여', '판매율', '예매자 수', ''].map((h) => (
                 <th
                   key={h}
@@ -737,10 +744,10 @@ function StatsPanel({
               const sold = zone.totalQuantity - zone.remainQuantity
               const pct = zone.totalQuantity > 0 ? Math.round((sold / zone.totalQuantity) * 100) : 0
               return (
-                <tr key={zone.id} className="border-b border-[#2D3155]/50 hover:bg-[#26293b]/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-[#dfe1f9]">{zone.name}</td>
-                  <td className="px-4 py-3 text-[#ccc3d8] font-mono">{zone.totalQuantity.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-[#ccc3d8] font-mono">{sold.toLocaleString()}</td>
+                <tr key={zone.id} className={cn('border-b transition-colors', dark ? 'border-[#2D3155]/50 hover:bg-[#26293b]/50' : 'border-[#DDD8F0] hover:bg-[#F5F3FF]')}>
+                  <td className={cn('px-4 py-3 font-medium', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{zone.name}</td>
+                  <td className={cn('px-4 py-3 font-mono', dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>{zone.totalQuantity.toLocaleString()}</td>
+                  <td className={cn('px-4 py-3 font-mono', dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>{sold.toLocaleString()}</td>
                   <td className="px-4 py-3 font-mono">
                     <span className={zone.remainQuantity <= 10 ? 'text-[#ffb4ab]' : 'text-[#ccc3d8]'}>
                       {zone.remainQuantity.toLocaleString()}
@@ -748,7 +755,7 @@ function StatsPanel({
                   </td>
                   <td className="px-4 py-3 min-w-[140px]">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-[#0a0d1d] rounded-full overflow-hidden">
+                      <div className={cn('flex-1 h-1.5 rounded-full overflow-hidden', dark ? 'bg-[#0a0d1d]' : 'bg-[#DDD8F0]')}>
                         <div
                           className="h-full rounded-full progress-gradient"
                           style={{ width: `${pct}%` }}
@@ -757,7 +764,7 @@ function StatsPanel({
                       <span className="text-[11px] font-mono text-[#958da1] w-8 text-right">{pct}%</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-[#ccc3d8] font-mono">{zone.reservationCount.toLocaleString()}명</td>
+                  <td className={cn('px-4 py-3 font-mono', dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>{zone.reservationCount.toLocaleString()}명</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => onEditZone(zone)}
@@ -772,20 +779,20 @@ function StatsPanel({
             })}
           </tbody>
           <tfoot>
-            <tr className="bg-[#0f1223]">
+            <tr className={dark ? 'bg-[#0f1223]' : 'bg-[#F5F3FF]'}>
               <td className="px-4 py-3 text-xs font-mono text-[#958da1] uppercase tracking-wider">합계</td>
-              <td className="px-4 py-3 font-mono text-[#dfe1f9] font-medium">{total.totalQuantity.toLocaleString()}</td>
-              <td className="px-4 py-3 font-mono text-[#dfe1f9] font-medium">{soldTotal.toLocaleString()}</td>
-              <td className="px-4 py-3 font-mono text-[#dfe1f9] font-medium">{total.remainQuantity.toLocaleString()}</td>
+              <td className={cn('px-4 py-3 font-mono font-medium', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{total.totalQuantity.toLocaleString()}</td>
+              <td className={cn('px-4 py-3 font-mono font-medium', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{soldTotal.toLocaleString()}</td>
+              <td className={cn('px-4 py-3 font-mono font-medium', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{total.remainQuantity.toLocaleString()}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-[#0a0d1d] rounded-full overflow-hidden">
+                  <div className={cn('flex-1 h-1.5 rounded-full overflow-hidden', dark ? 'bg-[#0a0d1d]' : 'bg-[#DDD8F0]')}>
                     <div className="h-full rounded-full progress-gradient" style={{ width: `${soldPct}%` }} />
                   </div>
-                  <span className="text-[11px] font-mono text-[#dfe1f9] w-8 text-right font-medium">{soldPct}%</span>
+                  <span className={cn('text-[11px] font-mono w-8 text-right font-medium', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{soldPct}%</span>
                 </div>
               </td>
-              <td className="px-4 py-3 font-mono text-[#dfe1f9] font-medium">{total.reservationCount.toLocaleString()}명</td>
+              <td className={cn('px-4 py-3 font-mono font-medium', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>{total.reservationCount.toLocaleString()}명</td>
               <td />
             </tr>
           </tfoot>
@@ -800,7 +807,7 @@ function StatsPanel({
 // ---------------------------------------------------------------------------
 
 export default function AdminPage() {
-  const [dark, setDark] = useState(true)
+  const { dark } = useTheme()
   const [nickname, setNickname] = useState<string | undefined>()
 
   const [concerts, setConcerts] = useState<Concert[]>([])
@@ -869,11 +876,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div className={dark ? 'dark' : ''}>
-      <div className="min-h-screen bg-[#0f1223] text-[#dfe1f9]">
+    <>
+      <div className={cn('min-h-screen', dark ? 'bg-[#0f1223] text-[#dfe1f9]' : 'bg-[#F5F3FF] text-[#1A1D2E]')}>
         <Navbar
-          dark={dark}
-          onToggle={() => setDark((d) => !d)}
           nickname={nickname}
           adminBadge
         />
@@ -884,7 +889,7 @@ export default function AdminPage() {
             {/* Page header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-[28px] font-bold text-[#dfe1f9]">공연 관리</h1>
+                <h1 className={cn('text-[28px] font-bold', dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>공연 관리</h1>
                 <p className="text-sm text-[#958da1] mt-1">
                   총 {concertsLoading ? '—' : `${concerts.length}개`} 공연
                 </p>
@@ -899,9 +904,9 @@ export default function AdminPage() {
             </div>
 
             {/* Concert Table */}
-            <div className="bg-[#1c1f30] border border-[#2D3155] rounded-xl overflow-hidden">
+            <div className={cn('rounded-xl overflow-hidden border', dark ? 'bg-[#1c1f30] border-[#2D3155]' : 'bg-white border-[#DDD8F0]')}>
               {/* Table header */}
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-3 bg-[#0f1223] border-b border-[#2D3155]">
+              <div className={cn('grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-3 border-b', dark ? 'bg-[#0f1223] border-[#2D3155]' : 'bg-[#F5F3FF] border-[#DDD8F0]')}>
                 {['공연명', '아티스트', '공연일', '판매시작일', '상태', '액션'].map((h) => (
                   <span key={h} className="text-[11px] font-mono text-[#958da1] uppercase tracking-wider">
                     {h}
@@ -911,15 +916,15 @@ export default function AdminPage() {
 
               {/* Rows */}
               {concertsLoading ? (
-                <div className="divide-y divide-[#2D3155]/50">
+                <div className={cn('divide-y', dark ? 'divide-[#2D3155]/50' : 'divide-[#DDD8F0]')}>
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-4 animate-pulse">
-                      <div className="h-4 bg-[#2D3155] rounded w-3/4" />
-                      <div className="h-4 bg-[#2D3155] rounded w-1/2" />
-                      <div className="h-4 bg-[#2D3155] rounded w-2/3" />
-                      <div className="h-4 bg-[#2D3155] rounded w-2/3" />
-                      <div className="h-5 bg-[#2D3155] rounded-full w-16" />
-                      <div className="h-4 bg-[#2D3155] rounded w-20" />
+                      <div className={cn('h-4 rounded w-3/4', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
+                      <div className={cn('h-4 rounded w-1/2', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
+                      <div className={cn('h-4 rounded w-2/3', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
+                      <div className={cn('h-4 rounded w-2/3', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
+                      <div className={cn('h-5 rounded-full w-16', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
+                      <div className={cn('h-4 rounded w-20', dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]')} />
                     </div>
                   ))}
                 </div>
@@ -936,7 +941,7 @@ export default function AdminPage() {
                 </div>
               ) : concerts.length === 0 ? (
                 <div className="px-6 py-16 text-center">
-                  <Icon name="event_busy" className="text-[#4a4455] text-[48px] mb-4" />
+                  <Icon name="event_busy" className={cn('text-[48px] mb-4', dark ? 'text-[#4a4455]' : 'text-[#c4b5fd]')} />
                   <p className="text-[#958da1] mb-6">등록된 공연이 없습니다</p>
                   <button
                     onClick={() => setConcertModal({ open: true, mode: 'create' })}
@@ -947,7 +952,7 @@ export default function AdminPage() {
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-[#2D3155]/50">
+                <div className={cn('divide-y', dark ? 'divide-[#2D3155]/50' : 'divide-[#DDD8F0]')}>
                   {concerts.map((concert) => {
                     const isSelected = selectedConcert?.id === concert.id
                     const isEnded = concert.status === 'ENDED'
@@ -958,25 +963,25 @@ export default function AdminPage() {
                         className={cn(
                           'grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-6 py-4 cursor-pointer transition-colors',
                           isSelected
-                            ? 'bg-[#26293b] border-l-[3px] border-l-[#7c3aed]'
-                            : 'hover:bg-[#26293b]/60 border-l-[3px] border-l-transparent',
+                            ? dark ? 'bg-[#26293b] border-l-[3px] border-l-[#7c3aed]' : 'bg-[#EDE9FE] border-l-[3px] border-l-[#7c3aed]'
+                            : dark ? 'hover:bg-[#26293b]/60 border-l-[3px] border-l-transparent' : 'hover:bg-[#F5F3FF] border-l-[3px] border-l-transparent',
                         )}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className={cn('font-medium truncate', isEnded ? 'text-[#4a4455]' : 'text-[#dfe1f9]')}>
+                          <span className={cn('font-medium truncate', isEnded ? 'text-[#4a4455]' : dark ? 'text-[#dfe1f9]' : 'text-[#1A1D2E]')}>
                             {concert.title}
                           </span>
                           {isSelected && (
                             <Icon name="chevron_right" className="text-[#7c3aed] text-[16px] flex-shrink-0" />
                           )}
                         </div>
-                        <span className={cn('text-sm self-center', isEnded ? 'text-[#4a4455]' : 'text-[#ccc3d8]')}>
+                        <span className={cn('text-sm self-center', isEnded ? 'text-[#4a4455]' : dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>
                           {concert.artist}
                         </span>
-                        <span className={cn('text-sm font-mono self-center', isEnded ? 'text-[#4a4455]' : 'text-[#ccc3d8]')}>
+                        <span className={cn('text-sm font-mono self-center', isEnded ? 'text-[#4a4455]' : dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>
                           {new Date(concert.concertDate).toLocaleDateString('ko-KR')}
                         </span>
-                        <span className={cn('text-sm font-mono self-center', isEnded ? 'text-[#4a4455]' : 'text-[#ccc3d8]')}>
+                        <span className={cn('text-sm font-mono self-center', isEnded ? 'text-[#4a4455]' : dark ? 'text-[#ccc3d8]' : 'text-[#4A3F7A]')}>
                           {new Date(concert.saleStartAt).toLocaleDateString('ko-KR')}
                         </span>
                         <div className="self-center">
@@ -1026,7 +1031,7 @@ export default function AdminPage() {
           </div>
         </main>
 
-        <Footer dark={dark} />
+        <Footer />
 
         {/* Modals */}
         <ConcertModal
@@ -1050,6 +1055,6 @@ export default function AdminPage() {
           onDeleted={handleDeleted}
         />
       </div>
-    </div>
+    </>
   )
 }

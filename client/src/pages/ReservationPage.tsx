@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
+import { useTheme } from '@/context/ThemeContext'
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import axios from 'axios'
 import { Navbar } from '@/components/Navbar'
@@ -364,9 +365,7 @@ export default function ReservationPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [dark, setDark] = useState(() => {
-    return document.documentElement.classList.contains('dark')
-  })
+  const { dark } = useTheme()
   const [nickname, setNickname] = useState<string | undefined>()
   const [userId, setUserId] = useState<string | null>(null)
   const [concert, setConcert] = useState<Concert | null>(null)
@@ -521,7 +520,7 @@ export default function ReservationPage() {
   // ── 렌더: 로딩 ──────────────────────────────────────────────
   if (loading) {
     return (
-      <div className={dark ? 'dark' : ''}>
+      <>
         <div
           className={cn(
             'min-h-screen flex flex-col',
@@ -530,7 +529,7 @@ export default function ReservationPage() {
               : 'bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] text-[#1A1D2E]',
           )}
         >
-          <Navbar dark={dark} onToggle={() => setDark((d) => !d)} nickname={nickname} />
+          <Navbar nickname={nickname} />
           <main className="flex-grow pt-16">
             <div
               className={cn(
@@ -542,14 +541,14 @@ export default function ReservationPage() {
           </main>
           <Footer dark={dark} />
         </div>
-      </div>
+      </>
     )
   }
 
   // ── 렌더: 에러 ──────────────────────────────────────────────
   if (fetchError || !concert) {
     return (
-      <div className={dark ? 'dark' : ''}>
+      <>
         <div
           className={cn(
             'min-h-screen flex flex-col',
@@ -558,7 +557,7 @@ export default function ReservationPage() {
               : 'bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] text-[#1A1D2E]',
           )}
         >
-          <Navbar dark={dark} onToggle={() => setDark((d) => !d)} nickname={nickname} />
+          <Navbar nickname={nickname} />
           <main className="flex-grow pt-24 flex flex-col items-center justify-center gap-4 px-5">
             <Icon name="error" className="text-[56px] text-red-500" />
             <h2
@@ -594,13 +593,13 @@ export default function ReservationPage() {
           </main>
           <Footer dark={dark} />
         </div>
-      </div>
+      </>
     )
   }
 
   // ── 렌더: 메인 ──────────────────────────────────────────────
   return (
-    <div className={dark ? 'dark' : ''}>
+    <>
       <div
         className={cn(
           'min-h-screen flex flex-col',
@@ -609,7 +608,7 @@ export default function ReservationPage() {
             : 'bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] text-[#1A1D2E]',
         )}
       >
-        <Navbar dark={dark} onToggle={() => setDark((d) => !d)} nickname={nickname} />
+        <Navbar nickname={nickname} />
 
         {/* 타이머 배너 */}
         <TimerBanner
@@ -1033,6 +1032,7 @@ export default function ReservationPage() {
 
         <Footer dark={dark} />
       </div>
-    </div>
+    </>
   )
 }
+

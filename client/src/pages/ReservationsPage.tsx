@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
+import { useTheme } from '@/context/ThemeContext'
 import { Navbar } from '@/components/Navbar'
 
 // ---------------------------------------------------------------------------
@@ -463,7 +464,7 @@ function Footer({ dark }: { dark: boolean }) {
 
 export default function ReservationsPage() {
   const navigate = useNavigate()
-  const [dark, setDark] = useState(true)
+  const { dark } = useTheme()
   const [nickname, setNickname] = useState<string | undefined>(undefined)
 
   // cancel dialog state
@@ -502,7 +503,7 @@ export default function ReservationsPage() {
   }, [cancelTarget, retry])
 
   return (
-    <div className={dark ? 'dark' : ''}>
+    <>
       <div
         className={cn(
           'min-h-screen flex flex-col',
@@ -511,7 +512,7 @@ export default function ReservationsPage() {
             : 'bg-gradient-to-br from-[#F5F3FF] to-[#EDE9FE] text-[#1A1D2E]',
         )}
       >
-        <Navbar dark={dark} onToggle={() => setDark((d) => !d)} nickname={nickname} />
+        <Navbar nickname={nickname} />
 
         <main className="flex-grow pt-24 pb-16 px-5">
           <div className="max-w-[800px] mx-auto">
@@ -583,6 +584,6 @@ export default function ReservationsPage() {
           isLoading={cancelLoading}
         />
       )}
-    </div>
+    </>
   )
 }

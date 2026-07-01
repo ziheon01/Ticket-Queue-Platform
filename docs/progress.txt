@@ -218,3 +218,11 @@ Known Issues (추후 수정 필요):
   등록: 구역행 동적 추가/삭제, 공연 생성 후 구역 순차 POST
   수정: 기존 구역 읽기 전용 표시 + 새 구역 추가
 다음: README 작성 → 프로젝트 최종 완성
+[2026-07-01] 다크/라이트 테마 토글 버그 수정 완료 (typecheck·빌드 통과).
+  원인: 각 페이지가 로컬 useState(true)로 dark 관리 → 토글 시 해당 컴포넌트만 갱신, body 미반영
+  수정: ThemeContext(localStorage 초기화, document.documentElement.classList 동기화) 신규 생성
+        App.tsx에 ThemeProvider 주입, Navbar에서 useTheme()로 전역 토글
+        6개 페이지(ConcertsPage/ConcertDetailPage/QueuePage/ReservationPage/ReservationsPage/AdminPage):
+          local useState 제거 → useTheme() 교체, 외부 wrapper div → fragment(<>) 교체
+        AdminPage body(테이블·StatsPanel·모달·입력필드) 전체 조건부 색상 추가
+다음: README 작성 → 프로젝트 최종 완성

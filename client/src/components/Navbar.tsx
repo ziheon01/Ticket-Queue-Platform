@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, getRole } from '@/api/client'
+import { useTheme } from '@/context/ThemeContext'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +12,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 interface NavbarProps {
-  dark: boolean
-  onToggle: () => void
   nickname?: string
   adminBadge?: boolean
 }
@@ -41,7 +40,8 @@ function isActive(label: string, pathname: string): boolean {
   }
 }
 
-export function Navbar({ dark, onToggle, nickname, adminBadge }: NavbarProps) {
+export function Navbar({ nickname, adminBadge }: NavbarProps) {
+  const { dark, toggleDark } = useTheme()
   const isAdmin = getRole() === 'ADMIN'
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -99,7 +99,7 @@ export function Navbar({ dark, onToggle, nickname, adminBadge }: NavbarProps) {
 
         <div className="flex items-center gap-4">
           <button
-            onClick={onToggle}
+            onClick={toggleDark}
             aria-label="테마 전환"
             className={cn(
               'p-2 rounded-lg transition-all active:scale-95',
