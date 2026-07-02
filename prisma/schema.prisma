@@ -39,6 +39,11 @@ enum PaymentStatus {
   FAILED
 }
 
+enum PostStatus {
+  PENDING
+  ANSWERED
+}
+
 // ────────────────────────────────────────
 // Models
 // ────────────────────────────────────────
@@ -54,6 +59,8 @@ model User {
 
   refreshTokens RefreshToken[]
   reservations  Reservation[]
+  posts         Post[]
+  replies       Reply[]       @relation("AdminReplies")
 
   @@map("users")
 }
@@ -143,4 +150,36 @@ model Payment {
   reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  userId    String
+  title     String
+  content   String
+  status    PostStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reply Reply?
+
+  @@index([userId])
+  @@index([status])
+  @@map("posts")
+}
+
+model Reply {
+  id        String   @id @default(uuid())
+  postId    String   @unique
+  adminId   String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post  Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  admin User @relation("AdminReplies", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@map("replies")
 }

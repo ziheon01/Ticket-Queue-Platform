@@ -10,6 +10,8 @@ import concertRouter from './routes/concert.routes';
 import queueRouter from './routes/queue.routes';
 import reservationRouter from './routes/reservation.routes';
 import paymentRouter from './routes/payment.routes';
+import postRouter from './routes/post.routes';
+import adminPostRouter from './routes/adminPost.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { registerConcertStatusCron } from './queues/concertStatus.queue';
 import { startConcertStatusWorker } from './queues/workers/concertStatus.worker';
@@ -34,6 +36,8 @@ app.use('/api/concerts', concertRouter);
 app.use('/api/queue', queueRouter);
 app.use('/api/reservations', reservationRouter);
 app.use('/api/payments', paymentRouter);
+app.use('/api/posts', postRouter);
+app.use('/api/admin/posts', adminPostRouter);
 
 app.use(errorHandler);
 

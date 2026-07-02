@@ -226,3 +226,9 @@ Known Issues (추후 수정 필요):
           local useState 제거 → useTheme() 교체, 외부 wrapper div → fragment(<>) 교체
         AdminPage body(테이블·StatsPanel·모달·입력필드) 전체 조건부 색상 추가
 다음: README 작성 → 프로젝트 최종 완성
+[2026-07-02] 고객센터 게시판 백엔드 구현 완료 (AC1~AC17 전부 통과, typecheck 통과, 전체 75/75 통과).
+  마이그레이션: add-post-reply (Post, Reply 모델 + PostStatus enum)
+  구현: dtos/post, repositories/post, services/post,
+        controllers(post/adminPost), routes(post/adminPost), index.ts 라우트 등록
+  설계: Reply 생성 + Post.status ANSWERED 원자화 ($transaction), 삭제 검증 순서(404→403→400)
+다음: 고객센터 게시판 프론트엔드 구현 (Stitch 디자인 생성 → SupportPage.tsx)

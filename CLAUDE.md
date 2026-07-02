@@ -180,3 +180,7 @@ src/
   `String?`으로 선언해야 함
 - 운영 배포 전 `/api/payments/webhook`에 Toss Authorization 시크릿 키 헤더 검증 필수.
   현재 테스트 모드라 미적용 상태.
+- `prisma.$transaction([op1, op2])` 배열 인자 방식의 반환값은 `[result1, result2]` 배열이다.
+  콜백 방식(`$transaction(async tx => ...)`)과 달리 결과를 직접 반환하지 않으므로
+  첫 번째 결과가 필요하면 `const [result] = await prisma.$transaction([...])` 으로 구조분해해야 한다.
+  구조분해를 빠뜨리면 배열이 그대로 API 응답에 담겨 클라이언트가 예상치 못한 형태를 받게 된다.
