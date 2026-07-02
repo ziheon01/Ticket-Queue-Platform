@@ -19,6 +19,7 @@ ADMIN (어드민)
 → 구역별 티켓 수량/가격 설정
 → 판매 시작 시간 설정
 → 판매 현황 조회
+→ 전체 문의 목록 조회 및 답변 등록/수정
 
 USER (일반 유저)
 → 공연 목록/상세 조회
@@ -26,6 +27,7 @@ USER (일반 유저)
 → 구역 선택 및 티켓 수량 선택 (최대 4장)
 → 결제 진행
 → 예매 내역 조회
+→ 문의 작성/조회/삭제
 ```
 
 인증은 RBAC 방식으로 단일 User 테이블에 `role` 컬럼으로 관리한다. JWT에 role을 포함해 어드민 전용 미들웨어로 접근을 제어한다.
@@ -73,6 +75,13 @@ USER (일반 유저)
 - 내 예매 목록 조회
 - 예매 상세 조회 (공연 정보, 구역, 수량, 결제 금액)
 - 예매 취소 (결제 완료 전만 가능)
+
+**고객센터 게시판**
+- 문의 작성 (제목 + 내용)
+- 내 문의 목록 조회
+- 내 문의 상세 조회 (답변 포함)
+- 문의 삭제 (답변 전, 본인만)
+- 어드민: 전체 문의 목록 조회, 답변 등록/수정
 
 ### Out of Scope (MVP 이후)
 
@@ -194,6 +203,21 @@ Payment
 - status (enum: READY | DONE | CANCELLED | FAILED)
 - paidAt (nullable)
 - createdAt / updatedAt
+
+Post (문의글)
+- id
+- userId (FK)
+- title
+- content
+- status (enum: PENDING | ANSWERED)
+- createdAt / updatedAt
+
+Reply (답변)
+- id
+- postId (FK, unique)
+- adminId (FK)
+- content
+- createdAt / updatedAt
 ```
 
 ---
@@ -278,6 +302,21 @@ POST   /api/reservations/:id/extend       결제 시간 연장 (1회 한정)
 POST   /api/payments/webhook              토스페이먼츠 결제 결과 수신
 ```
 
+### 고객센터 (유저)
+```
+GET    /api/posts              내 문의 목록
+POST   /api/posts              문의 작성
+GET    /api/posts/:id          문의 상세 (답변 포함)
+DELETE /api/posts/:id          문의 삭제 (PENDING 상태, 본인만)
+```
+
+### 고객센터 (어드민)
+```
+GET    /api/admin/posts              전체 문의 목록
+POST   /api/admin/posts/:id/reply    답변 등록
+PATCH  /api/admin/posts/:id/reply    답변 수정
+```
+
 ### WebSocket 이벤트
 ```
 클라이언트 → 서버
@@ -337,3 +376,33 @@ queue:error        에러 알림
 - 동시 입장 처리 단위: 한 번에 몇 명씩 입장 처리할지 결정 필요 (예: 앞에서 10명씩 배치 입장)
 - Redis Keyspace Notification: Docker Redis 설정에서 `notify-keyspace-events KEA` 활성화 필요 여부 확인
 - ngrok 설정: 토스페이먼츠 Webhook 로컬 수신을 위한 터널 URL 설정 시점
+
+---
+
+## 11. 고객센터 게시판 (신규)
+
+### 기능 범위
+
+**유저**
+- 문의 작성 (제목 + 내용)
+- 내 문의 목록 조회
+- 내 문의 상세 조회 (답변 포함)
+- 문의 삭제 (답변 전, 본인만)
+
+**어드민**
+- 전체 문의 목록 조회
+- 문의 상세 조회
+- 답변 등록
+- 답변 수정
+- 문의 상태: PENDING(대기중) / ANSWERED(답변완료)
+
+### MVP 제외
+- 파일 첨부
+- 댓글 다중 답변 (1:1 단일 답변만)
+- 알림 (답변 완료 시 푸시 알림)
+- 카테고리 분류
+
+### 네비게이션 변경
+- "티켓팅" 메뉴 제거
+- "고객센터" → /support 연결
+- 최종 네비게이션: 공연 / 마이페이지 / 고객센터
