@@ -1,6 +1,6 @@
-# Plan: 티켓 선점 및 결제 시스템 구현
+# Plan: 고객센터 게시판 백엔드 구현
 
-작성일: 2026-06-11
+작성일: 2026-07-02
 상태: 승인 대기
 
 ---
@@ -12,28 +12,26 @@
 ```
 src/
 ├── dtos/
-│   └── reservation.dto.ts              # Zod: 예매 생성·취소·연장 스키마 + 응답 타입
+│   └── post.dto.ts                     # Zod: 문의 작성·답변 스키마 + 응답 타입
 ├── repositories/
-│   └── reservation.repository.ts       # DB CRUD (Reservation, Payment) + Redis 재고/선점 CRUD
+│   └── post.repository.ts              # DB CRUD (Post, Reply)
 ├── services/
-│   └── reservation.service.ts          # 비즈니스 로직 (선점/결제확정/취소/연장/만료)
+│   └── post.service.ts                 # 비즈니스 로직 (작성/조회/삭제/답변 등록·수정)
 ├── controllers/
-│   ├── reservation.controller.ts       # REST 핸들러 (create/list/detail/cancel/extend)
-│   └── payment.controller.ts           # Webhook 핸들러 (토스페이먼츠 결과 수신)
-├── routes/
-│   ├── reservation.routes.ts           # /api/reservations/*
-│   └── payment.routes.ts              # /api/payments/*
-└── queues/
-    └── workers/
-        └── reservation.worker.ts       # 선점 만료 타이머 워커 (BullMQ delayed job)
+│   ├── post.controller.ts              # 유저 REST 핸들러 (create/list/detail/delete)
+│   └── adminPost.controller.ts         # 어드민 REST 핸들러 (list/reply create/reply update)
+└── routes/
+    ├── post.routes.ts                  # /api/posts/*
+    └── adminPost.routes.ts             # /api/admin/posts/*
 
 tests/integration/
-└── reservation.test.ts                 # REST 통합 테스트
+└── post.test.ts                        # REST 통합 테스트 (AC1~AC17)
 ```
 
 ### 수정 파일
 
-- `src/index.ts` — reservation·payment 라우트 등록, reservation worker 시작
+- `prisma/schema.prisma` — Post, Reply 모델 추가
+- `src/index.ts` — post·adminPost 라우트 등록
 
 ---
 
@@ -41,139 +39,134 @@ tests/integration/
 
 | # | 시나리오 | 기대 결과 |
 |---|---------|---------|
-| 1 | POST /api/reservations — 입장된 유저, 유효한 구역/수량 | 201, `{ reservationId, totalPrice, remainSeconds: 300 }` |
-| 2 | POST /api/reservations — 미입장 유저 (admitted 키 없음) | 403 Forbidden |
-| 3 | POST /api/reservations — 수량 범위 초과 (0 또는 5 이상) | 400 Bad Request |
-| 4 | POST /api/reservations — 재고 부족 (stock < quantity) | 409 Conflict |
-| 5 | POST /api/reservations — 이미 선점 중인 유저 (lock 키 존재) | 409 Conflict |
-| 6 | GET /api/reservations — 내 예매 목록 조회 | 200, 예매 배열 |
-| 7 | GET /api/reservations/:id — 본인 예매 상세 | 200, 예매 상세 (공연·구역·결제 포함) |
-| 8 | GET /api/reservations/:id — 타인 예매 조회 | 403 Forbidden |
-| 9 | DELETE /api/reservations/:id — PENDING 예매 취소 | 200, 선점 해제 + 재고 복구 |
-| 10 | DELETE /api/reservations/:id — CONFIRMED 예매 취소 시도 | 400 Bad Request |
-| 11 | POST /api/reservations/:id/extend — TTL 60초 이하 & 연장 이력 없음 | 200, `{ remainSeconds: 300 }` |
-| 12 | POST /api/reservations/:id/extend — 이미 연장한 경우 (extendedAt 존재) | 409 Conflict |
-| 13 | POST /api/reservations/:id/extend — TTL 60초 초과 (아직 여유 있음) | 400 Bad Request |
-| 14 | POST /api/payments/webhook — status: DONE | 200, Reservation CONFIRMED + Payment DONE + Redis lock 해제 |
-| 15 | BullMQ 만료 워커 — PENDING 예매 5분 경과 | Reservation EXPIRED + 재고 복구 + 다음 대기자 입장 처리 |
+| 1 | POST /api/posts — 인증된 유저, 유효한 title+content | 201, `{ id, title, content, status: 'PENDING', createdAt }` |
+| 2 | POST /api/posts — 미인증 | 401 Unauthorized |
+| 3 | POST /api/posts — title 누락 | 400 Bad Request |
+| 4 | GET /api/posts — 인증된 유저 | 200, 본인 문의 배열 (다른 유저 문의 미포함) |
+| 5 | GET /api/posts/:id — 본인 PENDING 문의 | 200, post + reply: null |
+| 6 | GET /api/posts/:id — 본인 ANSWERED 문의 | 200, post + reply 객체 포함 |
+| 7 | GET /api/posts/:id — 타인 문의 | 403 Forbidden |
+| 8 | GET /api/posts/:id — 존재하지 않는 id | 404 Not Found |
+| 9 | DELETE /api/posts/:id — 본인 PENDING 문의 | 200, 삭제 완료 |
+| 10 | DELETE /api/posts/:id — 본인 ANSWERED 문의 | 400 Bad Request |
+| 11 | DELETE /api/posts/:id — 타인 문의 | 403 Forbidden |
+| 12 | GET /api/admin/posts — 어드민 | 200, 전체 유저 문의 배열 (userId·닉네임 포함) |
+| 13 | GET /api/admin/posts — 일반 유저 | 403 Forbidden |
+| 14 | POST /api/admin/posts/:id/reply — 어드민, PENDING 문의 | 201, reply 생성 + post status → ANSWERED |
+| 15 | POST /api/admin/posts/:id/reply — 이미 reply 존재 | 409 Conflict |
+| 16 | PATCH /api/admin/posts/:id/reply — 어드민, reply 있음 | 200, reply 내용 수정 |
+| 17 | PATCH /api/admin/posts/:id/reply — reply 없음 | 404 Not Found |
 
 ---
 
 ## Dependencies
 
-- `requireAuth` 미들웨어 — **완료**
-- Redis client (`src/utils/redis.ts`) — **완료**
-- `ConcertZone` 모델 (price, remainQuantity) — **완료**
-- Queue service (다음 대기자 입장 처리 연동) — **완료** (`src/services/queue.service.ts`)
-- BullMQ — **완료** (설치됨)
-- Socket.io (`src/utils/socket.ts`) — **완료**
+- `requireAuth` 미들웨어 — **완료** (`src/middlewares/auth.middleware.ts`)
+- `requireAdmin` 미들웨어 — **완료** (동일 파일, `req.user?.role !== 'ADMIN'` 체크)
+- Prisma 싱글톤 클라이언트 — **완료** (`src/utils/prisma.ts`)
+- 공통 응답 래퍼 (`ok`, `created`) — **완료** (`src/utils/response.ts`)
+- `AppError` — **완료** (`src/utils/errors.ts`)
+- Zod v4 — **완료** (설치됨, `z.string({ error: '...' })` 방식 사용)
 
 ---
 
 ## 설계 결정
 
-### Redis 원자적 선점 (Lua 스크립트)
-
-SPEC: `SET NX + DECRBY` 조합으로 원자적 처리.
-
-실제 구현은 두 연산이 분리되면 Race Condition 발생 가능 → **Lua 스크립트**로 원자화:
-
-```lua
--- 인자: KEYS[1]=stock키, KEYS[2]=lock키, ARGV[1]=quantity, ARGV[2]=ttl(초), ARGV[3]=reservationId
-local stock = tonumber(redis.call('GET', KEYS[1]))
-if stock == nil or stock < tonumber(ARGV[1]) then
-  return -1  -- 재고 부족
-end
-if redis.call('EXISTS', KEYS[2]) == 1 then
-  return -2  -- 이미 선점 중
-end
-redis.call('DECRBY', KEYS[1], ARGV[1])
-redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[2])
-return 1  -- 선점 성공
-```
-
-반환값: `1`=성공, `-1`=재고부족(409), `-2`=이미선점(409)
-
-### 결제 타이머 (BullMQ delayed job)
-
-- 큐명: `reservation-expiry`
-- 예매 생성 시: `{ reservationId, concertZoneId, userId, concertId }` 페이로드 + 5분 delay
-- 연장 시: 기존 job ID(`expiry:${reservationId}`)로 job 제거 → 새 delayed job 등록 (5분 delay)
-- 워커 처리:
-  1. DB에서 reservation 조회 → status가 PENDING이 아니면 skip
-  2. Reservation status → EXPIRED, Payment status → FAILED
-  3. Redis stock INCRBY quantity 복구
-  4. Redis lock 삭제
-  5. Queue service의 다음 대기자 입장 처리 호출
-  6. Socket.io `queue:expired` 이벤트 전송 (해당 유저)
-
-Keyspace Notification 불필요 — BullMQ delayed job이 TTL 역할 대체.
-
-### Redis lock 키와 BullMQ job의 TTL 동기화
-
-- 선점 생성: Redis lock TTL=300초, BullMQ delay=300,000ms (일치)
-- 연장: Redis EXPIRE 300초 재설정 + BullMQ job 교체 (둘 다 갱신)
-- 취소/Webhook 완료: Redis lock DEL + BullMQ job 제거
-
-### 토스페이먼츠 Webhook 처리
-
-테스트 모드 기준:
-1. `POST /api/payments/webhook` — Body: `{ paymentKey, orderId, status, amount, ... }`
-2. `orderId`를 `reservationId`로 사용 (예매 생성 시 `orderId = reservationId` 세팅)
-3. `status === "DONE"`: Payment DONE + Reservation CONFIRMED + Redis lock 해제 + BullMQ job 취소
-4. `status === "CANCELLED"` | `"FAILED"`: Payment FAILED/CANCELLED + Reservation CANCELLED + 재고 복구
-
-Webhook 시그니처 검증: 테스트 모드는 생략 (TODO: 운영 시 `토스페이먼츠-Signature` 헤더 검증 필요)
-
-### 재고 초기화 (Redis sync)
-
-공연 관리에서 이미 `zone:{zoneId}:stock`을 초기화하는 로직이 있는지 확인 필요.
-없으면 예매 생성 시 stock 키 첫 접근 전 `SETNX zone:{zoneId}:stock {remainQuantity}` 로 초기화.
-
-### Redis 키 (SPEC.md 6번)
+### 데이터 모델 관계
 
 ```
-구역 재고:    zone:{concertZoneId}:stock       String (숫자), DB remainQuantity와 이중 관리
-선점 락:      zone:{concertZoneId}:lock:{userId}  String (reservationId), TTL 5분
+User  1──N  Post  1──0..1  Reply
+                    └── adminId (FK → User)
 ```
 
-### BullMQ 큐명
+- Reply는 Post와 1:1 unique 관계 (`postId` unique 제약)
+- Reply.adminId는 ADMIN role을 가진 User를 참조 (FK → User)
+- Post 삭제 시 Reply도 cascade delete (`onDelete: Cascade`)
 
-- `reservation-expiry` — delayed job (5분), 선점 만료 처리
+### 어드민 라우트 인증 체이닝
 
-### 예매 취소 처리
+```typescript
+// requireAdmin은 requireAuth 이후에만 동작 (req.user 전제)
+router.get('/', requireAuth, requireAdmin, getAllPostsHandler)
+router.post('/:id/reply', requireAuth, requireAdmin, createReplyHandler)
+router.patch('/:id/reply', requireAuth, requireAdmin, updateReplyHandler)
+```
 
-- PENDING 상태만 취소 가능 (CONFIRMED는 거부)
-- Redis lock DEL + stock INCRBY 복구
-- Reservation status → CANCELLED, Payment status → CANCELLED
-- BullMQ job 제거
+기존 `admin.routes.ts` 패턴과 동일.
+
+### Reply 등록: Prisma 트랜잭션 원자화
+
+Reply 생성 + Post.status → ANSWERED 두 연산을 단일 트랜잭션으로 처리:
+
+```typescript
+await prisma.$transaction([
+  prisma.reply.create({ data: { postId, adminId, content } }),
+  prisma.post.update({ where: { id: postId }, data: { status: 'ANSWERED' } }),
+])
+```
+
+### 삭제 조건 검증 순서
+
+존재 확인(404) → 소유권(403) → 상태(400) 순서로 검증.
+
+### 응답 DTO 설계
+
+```typescript
+// 유저: 목록 (reply 미포함)
+interface PostSummaryResponse {
+  id: string
+  title: string
+  status: 'PENDING' | 'ANSWERED'
+  createdAt: string
+}
+
+// 유저: 상세 (reply 포함)
+interface PostDetailResponse {
+  id: string
+  title: string
+  content: string
+  status: 'PENDING' | 'ANSWERED'
+  createdAt: string
+  reply: { id: string; content: string; createdAt: string } | null
+}
+
+// 어드민: 목록 (userId·nickname 추가)
+interface AdminPostSummaryResponse extends PostSummaryResponse {
+  userId: string
+  userNickname: string
+}
+```
+
+### 페이지네이션
+
+MVP 기준 미적용. 전체 목록 단순 반환 (createdAt DESC 정렬).
 
 ---
 
 ## Unknowns
 
-- 토스페이먼츠 SDK(`@tosspayments/payment-sdk`) API 인터페이스 — 설치된 버전 기준으로 확인 후 진행
-- 공연 관리 워커에서 zone stock 초기화 여부 — `src/services/concert.service.ts` 확인 필요
+없음. 기존 패턴으로 충분히 구현 가능.
 
 ---
 
 ## Stop Conditions
 
-1. Lua 스크립트 원자성 검증 실패를 2회 수정 후에도 해결 못 할 때
-2. 토스페이먼츠 Webhook 연동 구조가 SDK와 맞지 않아 설계 변경 필요할 때
-3. 동일한 테스트 실패를 2회 수정 후에도 해결 못 할 때
+1. Prisma 마이그레이션 충돌 발생 시 → 즉시 중단, 사용자에게 보고
+2. 동일한 테스트 실패를 2회 수정 후에도 해결 못 할 때
+3. 타입체크 오류를 2회 수정 후에도 해결 못 할 때
 
 ---
 
 ## 구현 순서 (TDD)
 
-1. 기존 코드 조사: concert service의 stock 초기화 여부, socket util 인터페이스 확인
-2. `src/dtos/reservation.dto.ts` — Zod 스키마 + 응답 타입
-3. `src/repositories/reservation.repository.ts` — DB CRUD + Redis Lua 선점/해제
-4. **테스트 파일 먼저 작성** (`tests/integration/reservation.test.ts`) → 실패 확인
-5. `src/services/reservation.service.ts` — 비즈니스 로직
-6. `src/controllers/reservation.controller.ts` + `src/controllers/payment.controller.ts`
-7. `src/routes/reservation.routes.ts` + `src/routes/payment.routes.ts`
-8. `src/queues/workers/reservation.worker.ts` — BullMQ delayed job 워커
-9. `src/index.ts` — 라우트 등록, 워커 시작
-10. 테스트 통과 확인 → typecheck 통과 확인
+1. `prisma/schema.prisma` — Post, Reply 모델 추가
+2. `npx prisma migrate dev --name add-post-reply`
+3. `npx prisma generate`
+4. `src/dtos/post.dto.ts` — Zod 스키마 + 응답 타입 정의
+5. `src/repositories/post.repository.ts` — DB CRUD 함수
+6. **테스트 파일 먼저 작성** (`tests/integration/post.test.ts`) → 실패 확인
+7. `src/services/post.service.ts` — 비즈니스 로직 (소유권·상태 검증 포함)
+8. `src/controllers/post.controller.ts` + `src/controllers/adminPost.controller.ts`
+9. `src/routes/post.routes.ts` + `src/routes/adminPost.routes.ts`
+10. `src/index.ts` — 라우트 등록
+11. 테스트 통과 확인 → typecheck 통과 확인
