@@ -232,3 +232,9 @@ Known Issues (추후 수정 필요):
         controllers(post/adminPost), routes(post/adminPost), index.ts 라우트 등록
   설계: Reply 생성 + Post.status ANSWERED 원자화 ($transaction), 삭제 검증 순서(404→403→400)
 다음: 고객센터 게시판 프론트엔드 구현 (Stitch 디자인 생성 → SupportPage.tsx)
+[2026-07-03] Stitch 고객센터 페이지 디자인 생성 완료 (프로젝트 236975419009576561).
+  유저 고객센터 다크: screen 80f01cbd (문의 목록 + 문의 작성 모달 오버레이)
+  유저 고객센터 라이트: screen 4b9b147b (문의 목록 + 문의 상세/답변 완료 모달 오버레이)
+  어드민 문의 관리 다크: screen d125af52 (전체 문의 목록 + 답변 등록 모달 오버레이)
+  어드민 문의 관리 라이트: screen 3886cb44 (전체 문의 목록 + 답변 수정 모달 오버레이)
+다음: SupportPage.tsx 구현 (유저 고객센터 /support) + AdminSupportPage.tsx 구현 (/admin/support)
