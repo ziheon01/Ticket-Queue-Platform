@@ -46,8 +46,10 @@ export interface PostDetailResponse {
 export interface AdminPostSummaryResponse {
   id: string;
   title: string;
+  content: string;
   status: string;
   createdAt: Date;
   userId: string;
   userNickname: string;
+  reply: { id: string; content: string } | null;
 }

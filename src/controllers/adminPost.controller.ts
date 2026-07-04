@@ -9,10 +9,12 @@ export async function getAllPostsHandler(req: Request, res: Response): Promise<v
   const data: AdminPostSummaryResponse[] = posts.map((p) => ({
     id: p.id,
     title: p.title,
+    content: p.content,
     status: p.status,
     createdAt: p.createdAt,
     userId: p.user.id,
     userNickname: p.user.nickname,
+    reply: p.reply ? { id: p.reply.id, content: p.reply.content } : null,
   }));
   res.status(200).json(successResponse(data));
 }

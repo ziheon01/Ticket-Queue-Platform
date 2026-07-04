@@ -22,19 +22,23 @@ function Icon({ name, className }: { name: string; className?: string }) {
 
 const NAV_ITEMS = [
   { label: '공연', href: '/' },
-  { label: '티켓팅', href: '/' },
   { label: '마이페이지', href: '/reservations' },
-  { label: '고객센터', href: '#' },
+  { label: '고객센터', href: '/support' },
 ]
 
 function isActive(label: string, pathname: string): boolean {
   switch (label) {
     case '공연':
-      return pathname === '/' || pathname.startsWith('/concerts')
-    case '티켓팅':
-      return pathname.startsWith('/queue') || (pathname.startsWith('/reservation') && !pathname.startsWith('/reservations'))
+      return (
+        pathname === '/' ||
+        pathname.startsWith('/concerts') ||
+        pathname.startsWith('/queue') ||
+        (pathname.startsWith('/reservation') && !pathname.startsWith('/reservations'))
+      )
     case '마이페이지':
       return pathname.startsWith('/reservations')
+    case '고객센터':
+      return pathname.startsWith('/support')
     default:
       return false
   }
@@ -151,16 +155,28 @@ export function Navbar({ nickname, adminBadge }: NavbarProps) {
                 예매 내역
               </DropdownMenuItem>
               {isAdmin && (
-                <DropdownMenuItem
-                  className={cn(
-                    'cursor-pointer gap-2 text-sm',
-                    dark ? 'focus:bg-[#26293b] focus:text-white' : 'focus:bg-[#F5F3FF] focus:text-[#1A1D2E]',
-                  )}
-                  onClick={() => navigate('/admin')}
-                >
-                  <Icon name="admin_panel_settings" className="text-[15px]" />
-                  관리자 페이지
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem
+                    className={cn(
+                      'cursor-pointer gap-2 text-sm',
+                      dark ? 'focus:bg-[#26293b] focus:text-white' : 'focus:bg-[#F5F3FF] focus:text-[#1A1D2E]',
+                    )}
+                    onClick={() => navigate('/admin')}
+                  >
+                    <Icon name="admin_panel_settings" className="text-[15px]" />
+                    공연 관리
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={cn(
+                      'cursor-pointer gap-2 text-sm',
+                      dark ? 'focus:bg-[#26293b] focus:text-white' : 'focus:bg-[#F5F3FF] focus:text-[#1A1D2E]',
+                    )}
+                    onClick={() => navigate('/admin/support')}
+                  >
+                    <Icon name="forum" className="text-[15px]" />
+                    고객센터 관리
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuSeparator className={dark ? 'bg-[#2D3155]' : 'bg-[#DDD8F0]'} />
               <DropdownMenuItem

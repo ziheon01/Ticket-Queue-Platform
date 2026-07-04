@@ -40,9 +40,11 @@ export async function findAllPosts() {
     select: {
       id: true,
       title: true,
+      content: true,
       status: true,
       createdAt: true,
       user: { select: { id: true, nickname: true } },
+      reply: { select: { id: true, content: true } },
     },
   });
 }

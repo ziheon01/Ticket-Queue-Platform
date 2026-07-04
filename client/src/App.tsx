@@ -8,6 +8,8 @@ import QueuePage from '@/pages/QueuePage'
 import ReservationPage from '@/pages/ReservationPage'
 import ReservationsPage from '@/pages/ReservationsPage'
 import AdminPage from '@/pages/AdminPage'
+import SupportPage from '@/pages/SupportPage'
+import AdminSupportPage from '@/pages/AdminSupportPage'
 import LoginPage from '@/pages/LoginPage'
 
 function AppRoutes() {
@@ -59,6 +61,22 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <AdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/support"
+        element={
+          <ProtectedRoute>
+            <SupportPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/support"
+        element={
+          <AdminRoute>
+            <AdminSupportPage />
           </AdminRoute>
         }
       />
