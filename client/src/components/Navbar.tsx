@@ -38,7 +38,7 @@ function isActive(label: string, pathname: string): boolean {
     case '마이페이지':
       return pathname.startsWith('/reservations')
     case '고객센터':
-      return pathname.startsWith('/support')
+      return pathname.startsWith('/support') || pathname.startsWith('/admin/support')
     default:
       return false
   }
@@ -81,11 +81,12 @@ export function Navbar({ nickname, adminBadge }: NavbarProps) {
 
         <div className="hidden md:flex items-center gap-6 text-sm">
           {NAV_ITEMS.map(({ label, href }) => {
+            const resolvedHref = label === '고객센터' && isAdmin ? '/admin/support' : href
             const active = isActive(label, pathname)
             return (
               <button
                 key={label}
-                onClick={() => (href !== '#' ? navigate(href) : undefined)}
+                onClick={() => navigate(resolvedHref)}
                 className={cn(
                   'transition-colors duration-200',
                   active
