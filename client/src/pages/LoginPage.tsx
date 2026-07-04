@@ -97,7 +97,7 @@ function Navbar({ dark, onToggle }: { dark: boolean; onToggle: () => void }) {
         </a>
 
         <div className="hidden md:flex items-center gap-6 text-sm">
-          {['공연', '티켓팅', '마이페이지', '고객센터'].map((label) => (
+          {['공연', '마이페이지', '고객센터'].map((label) => (
             <a
               key={label}
               href="#"
