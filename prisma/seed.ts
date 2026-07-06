@@ -30,9 +30,10 @@ async function main() {
   console.log('DB 초기화 완료');
 
   // ── 3. 유저 생성 ───────────────────────────────────────────────
-  const [adminPassword, userPassword] = await Promise.all([
+  const [adminPassword, userPassword, testPassword] = await Promise.all([
     bcrypt.hash('admin1234!', 10),
     bcrypt.hash('user1234!', 10),
+    bcrypt.hash('test1234!', 10),
   ]);
 
   const [admin, user] = await Promise.all([
@@ -44,7 +45,20 @@ async function main() {
     }),
   ]);
 
-  console.log(`유저 생성: ${admin.email}, ${user.email}`);
+  await Promise.all(
+    Array.from({ length: 10 }, (_, i) =>
+      prisma.user.create({
+        data: {
+          email: `test${i + 1}@test.com`,
+          password: testPassword,
+          nickname: `테스터${i + 1}`,
+          role: 'USER',
+        },
+      }),
+    ),
+  );
+
+  console.log(`유저 생성: ${admin.email}, ${user.email}, test1@test.com ~ test10@test.com`);
 
   // ── 4. 콘서트 생성 ────────────────────────────────────────────
 
