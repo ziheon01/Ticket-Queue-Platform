@@ -252,3 +252,8 @@ Known Issues (추후 수정 필요):
   수정: Navbar.tsx — '티켓팅' 제거, '고객센터' → /support, ADMIN 드롭다운에 "고객센터 관리" 추가
   수정: App.tsx — /support (ProtectedRoute), /admin/support (AdminRoute) 추가
 다음: README 작성 → 프로젝트 최종 완성
+[2026-07-07] payments 로깅 추가 (Webhook 디버깅 목적).
+  신규: src/utils/logger.ts — pino 로거 (dev: pino-pretty 컬러 출력, prod: level info)
+  수정: src/index.ts — pino-http 미들웨어 전역 등록 (요청 단위 로깅)
+  수정: src/controllers/payment.controller.ts — tossWebhookHandler에 수신 body·Authorization 헤더·처리 완료/실패(스택 포함) 로그 추가
+  배경: Toss Webhook 로컬 수신 시 실패 원인 추적 어려움 → 운영 전 Authorization 시크릿 키 헤더 검증 적용 시에도 재사용 가능
