@@ -257,3 +257,17 @@ Known Issues (추후 수정 필요):
   수정: src/index.ts — pino-http 미들웨어 전역 등록 (요청 단위 로깅)
   수정: src/controllers/payment.controller.ts — tossWebhookHandler에 수신 body·Authorization 헤더·처리 완료/실패(스택 포함) 로그 추가
   배경: Toss Webhook 로컬 수신 시 실패 원인 추적 어려움 → 운영 전 Authorization 시크릿 키 헤더 검증 적용 시에도 재사용 가능
+[2026-07-09] ngrok 연동 후 발견된 Webhook 400 에러 수정 완료 (전체 77/77 통과, typecheck 통과).
+  원인: TossWebhookDto가 paymentKey/orderId/status를 최상위 필드로 기대했으나
+        실제 토스 Webhook은 { eventType, data: {...} } 봉투 구조로 옴 → safeParse 실패로 400
+        (이 시점이 try/catch 밖이라 [WEBHOOK] 처리 실패 상세 로그도 안 찍혔던 것)
+  수정: dtos/reservation.dto.ts — TossWebhookDto를 eventType/data 봉투 구조로 변경
+        controllers/payment.controller.ts — handleWebhook에 parsed.data.data 전달,
+          형식 검증 실패 시에도 logger.warn(issues 포함)으로 원인 기록하도록 추가
+        services/reservation.service.ts — handleWebhook에 status EXPIRED 분기 추가
+          (Reservation EXPIRED + Payment FAILED + 재고 복구, ReservationStatus enum 기존 EXPIRED 값 재사용)
+  테스트: tests/integration/reservation.test.ts — AC14 웹훅 body를 실제 봉투 구조로 갱신,
+          AC15(EXPIRED) 케이스 + 잘못된 형식(400) 케이스 신규 추가
+  미결: 우리 쪽 BullMQ 5분 만료 워커와 토스 EXPIRED Webhook 중 어느 쪽이 먼저 도착하든
+        멱등성 체크(status !== PENDING → return)로 결과는 동일하나, 실제 ngrok 환경에서
+        토스가 보내는 EXPIRED 타이밍 자체는 아직 실측 확인 전

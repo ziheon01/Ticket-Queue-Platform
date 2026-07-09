@@ -399,10 +399,14 @@ describe('POST /api/payments/webhook', () => {
     const res = await request(app)
       .post('/api/payments/webhook')
       .send({
-        paymentKey: 'toss_test_paymentkey_123',
-        orderId: reservationId,
-        status: 'DONE',
-        totalAmount: zonePrice,
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: {
+          paymentKey: 'toss_test_paymentkey_123',
+          orderId: reservationId,
+          orderName: '',
+          status: 'DONE',
+          totalAmount: zonePrice,
+        },
       });
 
     expect(res.status).toBe(200);
@@ -417,5 +421,52 @@ describe('POST /api/payments/webhook', () => {
     // lock 해제됨
     const lockExists = await redis.exists(lockKey(zoneId, userId));
     expect(lockExists).toBe(0);
+  });
+
+  it('AC15: status EXPIRED → 200, Reservation EXPIRED + 재고 복구', async () => {
+    await setAdmitted(userId);
+    const createRes = await request(app)
+      .post('/api/reservations')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ concertZoneId: zoneId, quantity: 1 });
+    const reservationId = createRes.body.data.reservationId;
+    const stockBefore = Number(await redis.get(stockKey(zoneId)));
+
+    const res = await request(app)
+      .post('/api/payments/webhook')
+      .send({
+        eventType: 'PAYMENT_STATUS_CHANGED',
+        data: {
+          paymentKey: 'toss_test_paymentkey_expired',
+          orderId: reservationId,
+          orderName: '',
+          status: 'EXPIRED',
+          totalAmount: zonePrice,
+        },
+      });
+
+    expect(res.status).toBe(200);
+
+    const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    expect(reservation?.status).toBe('EXPIRED');
+
+    const payment = await prisma.payment.findUnique({ where: { reservationId } });
+    expect(payment?.status).toBe('FAILED');
+
+    // 재고 복구됨
+    const stockAfter = Number(await redis.get(stockKey(zoneId)));
+    expect(stockAfter).toBe(stockBefore + 1);
+
+    // lock 해제됨
+    const lockExists = await redis.exists(lockKey(zoneId, userId));
+    expect(lockExists).toBe(0);
+  });
+
+  it('잘못된 Webhook 형식 (data 누락) → 400', async () => {
+    const res = await request(app)
+      .post('/api/payments/webhook')
+      .send({ eventType: 'PAYMENT_STATUS_CHANGED' });
+
+    expect(res.status).toBe(400);
   });
 });

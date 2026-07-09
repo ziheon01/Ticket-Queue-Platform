@@ -5,7 +5,7 @@ export const CreateReservationDto = z.object({
   quantity: z.number().int().min(1, '수량은 1장 이상이어야 합니다').max(4, '최대 4장까지 구매 가능합니다'),
 });
 
-export const TossWebhookDto = z.object({
+const TossWebhookDataDto = z.object({
   paymentKey: z.string(),
   orderId: z.string(),
   status: z.string(),
@@ -13,8 +13,14 @@ export const TossWebhookDto = z.object({
   amount: z.number().optional(),
 });
 
+// 토스페이먼츠 Webhook 실제 페이로드는 { eventType, data: {...} } 봉투 구조로 온다.
+export const TossWebhookDto = z.object({
+  eventType: z.string(),
+  data: TossWebhookDataDto,
+});
+
 export type CreateReservationInput = z.infer<typeof CreateReservationDto>;
-export type TossWebhookBody = z.infer<typeof TossWebhookDto>;
+export type TossWebhookBody = z.infer<typeof TossWebhookDataDto>;
 
 export interface ReservationResponse {
   reservationId: string;

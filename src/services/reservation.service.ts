@@ -155,11 +155,12 @@ export async function handleWebhook(body: TossWebhookBody) {
 
     // BullMQ 만료 job 취소
     await removeReservationExpiryJob(reservationId);
-  } else if (body.status === 'CANCELLED' || body.status === 'FAILED') {
+  } else if (body.status === 'CANCELLED' || body.status === 'FAILED' || body.status === 'EXPIRED') {
+    const reservationStatus = body.status === 'EXPIRED' ? 'EXPIRED' : 'CANCELLED';
     const paymentStatus = body.status === 'CANCELLED' ? 'CANCELLED' : 'FAILED';
     await reservationRepo.updateReservationAndPaymentInTx(
       reservationId,
-      'CANCELLED',
+      reservationStatus,
       paymentStatus,
     );
 
