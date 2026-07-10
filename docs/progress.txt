@@ -271,3 +271,9 @@ Known Issues (추후 수정 필요):
   미결: 우리 쪽 BullMQ 5분 만료 워커와 토스 EXPIRED Webhook 중 어느 쪽이 먼저 도착하든
         멱등성 체크(status !== PENDING → return)로 결과는 동일하나, 실제 ngrok 환경에서
         토스가 보내는 EXPIRED 타이밍 자체는 아직 실측 확인 전
+[2026-07-10] README.md 전면 개편 (백엔드+프론트엔드 통합, typecheck/테스트 영향 없음).
+  구성: 기술 스택 badge, mermaid 시퀀스 다이어그램(티켓팅 플로우), mermaid ER 다이어그램(데이터 모델),
+        프론트엔드 섹션 신규(페이지/라우트 표, 주요 구현 포인트), Webhook payload 예시,
+        트러블슈팅 섹션(Socket.io 이중 전송, Toss Webhook 봉투 구조, BullMQ job ID, JWT jti, $transaction 배열 구조분해)
+  갱신: 테스트 스위트 5개/77 케이스로 카운트 갱신, 프로젝트 구조에 client/src 추가
+다음: 최종 마무리 점검 (남은 미결 사항 없는지 확인) 또는 사용자 지시 대기
