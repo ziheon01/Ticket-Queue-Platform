@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/errors'
 import { api } from '@/api/client'
 import { useTheme } from '@/context/ThemeContext'
 import { Navbar } from '@/components/Navbar'
@@ -263,7 +264,7 @@ function ConcertModal({
       onSaved()
       onClose()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '저장에 실패했습니다.'
+      const msg = getErrorMessage(err, '저장에 실패했습니다.')
       if (concertDone && newZones.length > 0) {
         const prefix = mode === 'create' ? '공연은 생성됐지만' : '공연은 수정됐지만'
         setError(`${prefix} 구역 등록 중 오류가 발생했습니다: ${msg}. 공연 수정에서 구역을 추가해주세요.`)
@@ -521,7 +522,7 @@ function ZoneModal({
       onSaved()
       onClose()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '저장에 실패했습니다.'
+      const msg = getErrorMessage(err, '저장에 실패했습니다.')
       setError(msg)
     } finally {
       setSaving(false)

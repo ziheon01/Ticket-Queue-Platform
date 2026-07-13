@@ -276,4 +276,15 @@ Known Issues (추후 수정 필요):
         프론트엔드 섹션 신규(페이지/라우트 표, 주요 구현 포인트), Webhook payload 예시,
         트러블슈팅 섹션(Socket.io 이중 전송, Toss Webhook 봉투 구조, BullMQ job ID, JWT jti, $transaction 배열 구조분해)
   갱신: 테스트 스위트 5개/77 케이스로 카운트 갱신, 프로젝트 구조에 client/src 추가
+[2026-07-12] payment.controller.ts Webhook 검증 방식을 전역 에러 핸들러 패턴으로 통일 (typecheck·테스트 통과).
+  변경: safeParse + 수동 AppError(400) → parse() + ZodError catch(로그용) → rethrow
+        (다른 컨트롤러 전부 parse()로 던지고 errorHandler가 ZodError를 400으로 변환하는 패턴,
+         payment.controller.ts만 예외였던 걸 통일. 에러 응답 메시지도 이제 실제 Zod 검증 메시지로 나감)
+[2026-07-13] AdminPage.tsx 저장 실패 시 에러 메시지 표시 버그 수정 (typecheck·빌드 통과, 백엔드 77/77 회귀 없음).
+  버그: catch에서 err.message(Axios 자체 메시지, 예: "Request failed with status code 400")를 그대로 노출 →
+        실제 백엔드 검증 메시지(err.response.data.message)는 버려지고 있었음
+  신규: client/src/lib/errors.ts — getErrorMessage(err, fallback) 공용 헬퍼
+        (axios 에러면 response.data.message 우선, 아니면 Error.message, 둘 다 없으면 fallback)
+  수정: AdminPage.tsx 공연/구역 저장 실패 catch 2곳을 getErrorMessage로 교체
+  참고: ReservationPage.tsx는 이미 인라인으로 동일 로직을 올바르게 쓰고 있어 손대지 않음
 다음: 최종 마무리 점검 (남은 미결 사항 없는지 확인) 또는 사용자 지시 대기
