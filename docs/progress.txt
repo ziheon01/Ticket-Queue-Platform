@@ -287,4 +287,10 @@ Known Issues (추후 수정 필요):
         (axios 에러면 response.data.message 우선, 아니면 Error.message, 둘 다 없으면 fallback)
   수정: AdminPage.tsx 공연/구역 저장 실패 catch 2곳을 getErrorMessage로 교체
   참고: ReservationPage.tsx는 이미 인라인으로 동일 로직을 올바르게 쓰고 있어 손대지 않음
+[2026-07-14] ReservationPage.tsx 에러 메시지 처리를 getErrorMessage 공용 헬퍼로 통일 (typecheck·빌드 통과).
+  대상 3곳: 공연 정보 조회 실패, 시간 연장 실패, 결제 실패(Toss USER_CANCEL은 기존 분기 유지)
+  개선: axios.isAxiosError 인라인 중복 제거 + (err as Error).message 안전하지 않은 캐스팅 제거
+        (getErrorMessage 내부에서 instanceof Error로 안전하게 체크)
+        서버 메시지 없을 때 raw Axios 영문 메시지 대신 한글 fallback 노출 (UX 개선)
+  수정: axios import 미사용으로 제거 (noUnusedLocals)
 다음: 최종 마무리 점검 (남은 미결 사항 없는지 확인) 또는 사용자 지시 대기

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { api } from '@/api/client'
 import { useTheme } from '@/context/ThemeContext'
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
-import axios from 'axios'
+import { getErrorMessage } from '@/lib/errors'
 import { Navbar } from '@/components/Navbar'
 
 // ---------------------------------------------------------------------------
@@ -419,10 +419,7 @@ export default function ReservationPage() {
         setUserId(user.id)
       } catch (err) {
         if (cancelled) return
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.message ?? err.message)
-          : '공연 정보를 불러올 수 없습니다'
-        setFetchError(msg)
+        setFetchError(getErrorMessage(err, '공연 정보를 불러올 수 없습니다'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -455,10 +452,7 @@ export default function ReservationPage() {
       setRemainSeconds(result.remainSeconds)
       setExtended(true)
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? (err.response?.data?.message ?? '시간 연장에 실패했습니다')
-        : '시간 연장에 실패했습니다'
-      setPayError(msg)
+      setPayError(getErrorMessage(err, '시간 연장에 실패했습니다'))
     }
   }, [reservationId])
 
@@ -503,13 +497,11 @@ export default function ReservationPage() {
     } catch (err) {
       // Toss UserCancelError 또는 그 외 에러
       const tossCode = (err as { code?: string }).code
-      if (tossCode === 'USER_CANCEL') {
-        setPayError('결제를 취소했습니다.')
-      } else if (axios.isAxiosError(err)) {
-        setPayError(err.response?.data?.message ?? '결제 중 오류가 발생했습니다')
-      } else {
-        setPayError((err as Error).message ?? '결제 중 오류가 발생했습니다')
-      }
+      setPayError(
+        tossCode === 'USER_CANCEL'
+          ? '결제를 취소했습니다.'
+          : getErrorMessage(err, '결제 중 오류가 발생했습니다'),
+      )
     } finally {
       setIsPaying(false)
     }
