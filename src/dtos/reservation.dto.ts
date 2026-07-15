@@ -56,34 +56,7 @@ export interface ReservationDetailResponse {
   } | null;
 }
 
-type ReservationDetailInput = {
-  id: string;
-  status: string;
-  quantity: number;
-  totalPrice: number;
-  extendedAt: Date | null;
-  createdAt: Date;
-  concertZone: {
-    id: string;
-    name: string;
-    price: number;
-    concert: {
-      id: string;
-      title: string;
-      artist: string;
-      venue: string;
-      concertDate: Date;
-    };
-  };
-  payment: {
-    id: string;
-    status: string;
-    amount: number;
-    paidAt: Date | null;
-  } | null;
-};
-
-export function toReservationDetailResponse(r: ReservationDetailInput): ReservationDetailResponse {
+export function toReservationDetailResponse(r: ReservationDetailResponse): ReservationDetailResponse {
   return {
     id: r.id,
     status: r.status,
