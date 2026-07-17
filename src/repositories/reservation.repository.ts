@@ -168,10 +168,6 @@ export async function createPayment(reservationId: string, amount: number) {
   });
 }
 
-export async function findPaymentByReservationId(reservationId: string) {
-  return prisma.payment.findUnique({ where: { reservationId } });
-}
-
 export async function updatePaymentStatus(
   reservationId: string,
   status: 'READY' | 'DONE' | 'CANCELLED' | 'FAILED',

@@ -6,13 +6,6 @@ export async function findZoneById(id: string): Promise<ConcertZone | null> {
   return prisma.concertZone.findUnique({ where: { id } });
 }
 
-export async function findZonesByConcertId(concertId: string): Promise<ConcertZone[]> {
-  return prisma.concertZone.findMany({
-    where: { concertId },
-    orderBy: { name: 'asc' },
-  });
-}
-
 export async function findZoneByName(concertId: string, name: string): Promise<ConcertZone | null> {
   return prisma.concertZone.findUnique({
     where: { concertId_name: { concertId, name } },
