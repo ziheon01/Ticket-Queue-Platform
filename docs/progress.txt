@@ -305,4 +305,17 @@ Known Issues (추후 수정 필요):
   참고: 재검증 중 reservation.test.ts에서 beforeAll 5초 타임아웃으로 17건 실패가 두 차례 재현됐으나,
         원인은 코드 변경이 아니라 VSCode 세션 기동으로 인한 시스템 리소스 경합(여유 메모리 급감)이었음.
         부하가 가라앉은 후 단일 파일·전체 스위트 모두 재실행해 정상 통과 확인.
+[2026-07-18] 미사용 DTO 타입 6개 삭제 (typecheck·전체 77/77 통과).
+  삭제: RefreshInput/LogoutInput(auth.dto.ts), ConcertStatusQuery(concert.dto.ts),
+        PostSummaryResponse/PostDetailResponse(post.dto.ts) — 삭제로 인해 그 안에서만 쓰이던
+        ReplyResponse도 연쇄적으로 죽은 코드가 되어 함께 삭제, ReservationResponse(reservation.dto.ts)
+  확인: src/tests 전체 grep으로 참조 0건(선언 라인 외 사용처 없음) 확인 후 삭제, client/ 쪽도 참조 없음 확인
+  관찰(조치 안 함): PostSummaryResponse/PostDetailResponse는 plan.md에 명시된 응답 계약이었지만
+        post.controller.ts/service.ts가 실제로는 Prisma 엔티티를 그대로 반환하고 있어(매퍼 미적용)
+        애초에 연결이 안 된 죽은 타입이었음. AdminPostSummaryResponse는 반대로 adminPost.controller.ts에서
+        정상적으로 매퍼로 연결돼 있어 대조됨. 유저 쪽 Post 응답에 매퍼를 실제로 연결하는 건
+        범위가 더 큰 작업이라 이번엔 손대지 않음 — 필요하면 별도로 논의.
+  환경 메모: 이번에도 전체 스위트 1차 실행에서 reservation.test.ts beforeAll 타임아웃 17건 재현
+        (WSL 3.7GB 메모리에 VSCode 세션이 겹쳐 여유 메모리 800MB 안팎일 때 발생 패턴 반복 확인).
+        재실행 시 정상 통과 — 코드 문제 아님, 세션 내 반복 관찰된 환경 특이사항으로 기록.
 다음: 최종 마무리 점검 (남은 미결 사항 없는지 확인) 또는 사용자 지시 대기

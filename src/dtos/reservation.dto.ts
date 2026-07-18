@@ -22,13 +22,6 @@ export const TossWebhookDto = z.object({
 export type CreateReservationInput = z.infer<typeof CreateReservationDto>;
 export type TossWebhookBody = z.infer<typeof TossWebhookDataDto>;
 
-export interface ReservationResponse {
-  reservationId: string;
-  totalPrice: number;
-  remainSeconds: number;
-  status: string;
-}
-
 export interface ReservationDetailResponse {
   id: string;
   status: string;

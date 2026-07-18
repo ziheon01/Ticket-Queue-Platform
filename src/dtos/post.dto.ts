@@ -21,28 +21,6 @@ export type UpdateReplyInput = z.infer<typeof UpdateReplyDto>;
 
 // ── 응답 타입 ────────────────────────────────────────────
 
-export interface ReplyResponse {
-  id: string;
-  content: string;
-  createdAt: Date;
-}
-
-export interface PostSummaryResponse {
-  id: string;
-  title: string;
-  status: string;
-  createdAt: Date;
-}
-
-export interface PostDetailResponse {
-  id: string;
-  title: string;
-  content: string;
-  status: string;
-  createdAt: Date;
-  reply: ReplyResponse | null;
-}
-
 export interface AdminPostSummaryResponse {
   id: string;
   title: string;

@@ -22,5 +22,3 @@ export const LogoutDto = z.object({
 
 export type RegisterInput = z.infer<typeof RegisterDto>;
 export type LoginInput = z.infer<typeof LoginDto>;
-export type RefreshInput = z.infer<typeof RefreshDto>;
-export type LogoutInput = z.infer<typeof LogoutDto>;

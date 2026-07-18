@@ -36,4 +36,3 @@ export type CreateConcertInput = z.infer<typeof CreateConcertDto>;
 export type UpdateConcertInput = z.infer<typeof UpdateConcertDto>;
 export type CreateZoneInput = z.infer<typeof CreateZoneDto>;
 export type UpdateZoneInput = z.infer<typeof UpdateZoneDto>;
-export type ConcertStatusQuery = z.infer<typeof ConcertStatusQueryDto>;
