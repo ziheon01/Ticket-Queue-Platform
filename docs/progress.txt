@@ -318,4 +318,9 @@ Known Issues (추후 수정 필요):
   환경 메모: 이번에도 전체 스위트 1차 실행에서 reservation.test.ts beforeAll 타임아웃 17건 재현
         (WSL 3.7GB 메모리에 VSCode 세션이 겹쳐 여유 메모리 800MB 안팎일 때 발생 패턴 반복 확인).
         재실행 시 정상 통과 — 코드 문제 아님, 세션 내 반복 관찰된 환경 특이사항으로 기록.
+[2026-07-19] localStorage 토큰 키를 공용 상수로 통일 (빌드 통과, 백엔드 미변경).
+  발견: 'accessToken'/'refreshToken' 문자열 리터럴이 client.ts, LoginPage.tsx, Navbar.tsx
+        3개 파일 12곳에 중복 — 오타 나면 조용히 깨질 수 있는 위험한 중복이었음
+  신규: client/src/api/client.ts — ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY export
+  수정: 3개 파일 전부 리터럴 대신 상수 참조로 교체, grep으로 잔여 리터럴 0건 확인
 다음: 최종 마무리 점검 (남은 미결 사항 없는지 확인) 또는 사용자 지시 대기

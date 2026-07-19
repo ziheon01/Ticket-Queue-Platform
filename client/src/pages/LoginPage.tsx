@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
-import { api, getToken } from '@/api/client'
+import { api, getToken, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/api/client'
 
 // ---------------------------------------------------------------------------
 // API 응답 타입
@@ -639,8 +639,8 @@ export default function LoginPage() {
         email: loginEmail,
         password: loginPassword,
       })
-      localStorage.setItem('accessToken', result.accessToken)
-      localStorage.setItem('refreshToken', result.refreshToken)
+      localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken)
+      localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken)
       navigate('/')
     } catch (err) {
       setLoginError(parseApiError(err, '로그인 중 오류가 발생했습니다'))
@@ -666,8 +666,8 @@ export default function LoginPage() {
         email: signupEmail,
         password: signupPassword,
       })
-      localStorage.setItem('accessToken', loginResult.accessToken)
-      localStorage.setItem('refreshToken', loginResult.refreshToken)
+      localStorage.setItem(ACCESS_TOKEN_KEY, loginResult.accessToken)
+      localStorage.setItem(REFRESH_TOKEN_KEY, loginResult.refreshToken)
       navigate('/')
     } catch (err) {
       setSignupError(parseApiError(err, '회원가입 중 오류가 발생했습니다'))

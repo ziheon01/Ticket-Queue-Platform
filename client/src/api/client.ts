@@ -11,6 +11,13 @@ export interface ApiResponse<T = null> {
 }
 
 // ---------------------------------------------------------------------------
+// localStorage 키
+// ---------------------------------------------------------------------------
+
+export const ACCESS_TOKEN_KEY = 'accessToken'
+export const REFRESH_TOKEN_KEY = 'refreshToken'
+
+// ---------------------------------------------------------------------------
 // axios 인스턴스
 // ---------------------------------------------------------------------------
 
@@ -23,7 +30,7 @@ const client = axios.create({ baseURL: BASE })
 // ---------------------------------------------------------------------------
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken')
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -59,7 +66,7 @@ client.interceptors.response.use(
 
     isRefreshing = true
     try {
-      const refreshToken = localStorage.getItem('refreshToken')
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
       if (!refreshToken) throw new Error('no refresh token')
 
       const { data } = await axios.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
@@ -68,8 +75,8 @@ client.interceptors.response.use(
       )
 
       const { accessToken, refreshToken: newRefresh } = data.data
-      localStorage.setItem('accessToken', accessToken)
-      localStorage.setItem('refreshToken', newRefresh)
+      localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
+      localStorage.setItem(REFRESH_TOKEN_KEY, newRefresh)
 
       waitQueue.forEach((cb) => cb(accessToken))
       waitQueue = []
@@ -77,8 +84,8 @@ client.interceptors.response.use(
       original.headers.Authorization = `Bearer ${accessToken}`
       return client(original)
     } catch {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
+      localStorage.removeItem(ACCESS_TOKEN_KEY)
+      localStorage.removeItem(REFRESH_TOKEN_KEY)
       window.location.href = '/login'
       return Promise.reject(error)
     } finally {
@@ -104,11 +111,11 @@ export const api = {
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem('accessToken')
+  return localStorage.getItem(ACCESS_TOKEN_KEY)
 }
 
 export function getRole(): 'ADMIN' | 'USER' | null {
-  const token = localStorage.getItem('accessToken')
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY)
   if (!token) return null
   try {
     const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')

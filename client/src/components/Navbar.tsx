@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { api, getRole } from '@/api/client'
+import { api, getRole, REFRESH_TOKEN_KEY } from '@/api/client'
 import { useTheme } from '@/context/ThemeContext'
 import {
   DropdownMenu,
@@ -51,7 +51,7 @@ export function Navbar({ nickname, adminBadge }: NavbarProps) {
   const { pathname } = useLocation()
 
   const handleLogout = async () => {
-    try { await api.post('/api/auth/logout', { refreshToken: localStorage.getItem('refreshToken') }) } catch {}
+    try { await api.post('/api/auth/logout', { refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY) }) } catch {}
     localStorage.clear()
     navigate('/login', { replace: true })
   }
