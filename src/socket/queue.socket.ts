@@ -12,6 +12,13 @@ interface QueueEnterPayload {
   concertId: string;
 }
 
+const QUEUE_EVENTS = {
+  POSITION: 'queue:position',
+  ERROR: 'queue:error',
+} as const;
+
+const MSG_CONCERT_ID_REQUIRED = 'concertId가 필요합니다';
+
 async function broadcastPositions(concertId: string): Promise<void> {
   if (!io) return;
   const sockets = await io.in(`concert:${concertId}`).fetchSockets();
@@ -28,7 +35,7 @@ async function broadcastPositions(concertId: string): Promise<void> {
     if (!uid) continue;
     const rank = rankMap.get(uid);
     if (rank !== undefined) {
-      s.emit('queue:position', { position: rank + 1, total });
+      s.emit(QUEUE_EVENTS.POSITION, { position: rank + 1, total });
     }
   }
 }
@@ -60,7 +67,7 @@ export function registerQueueSocket(server: Server): void {
     socket.on('queue:enter', async (payload: QueueEnterPayload) => {
       const { concertId } = payload ?? {};
       if (!concertId) {
-        socket.emit('queue:error', { message: 'concertId가 필요합니다' });
+        socket.emit(QUEUE_EVENTS.ERROR, { message: MSG_CONCERT_ID_REQUIRED });
         return;
       }
       try {
@@ -70,7 +77,7 @@ export function registerQueueSocket(server: Server): void {
         // 본인 포함 전체 대기자에게 순번 브로드캐스트
         await broadcastPositions(concertId);
       } catch (err) {
-        socket.emit('queue:error', { message: (err as Error).message });
+        socket.emit(QUEUE_EVENTS.ERROR, { message: (err as Error).message });
       }
     });
 
@@ -84,7 +91,7 @@ export function registerQueueSocket(server: Server): void {
         socket.data.concertId = undefined;
         await broadcastPositions(concertId);
       } catch (err) {
-        socket.emit('queue:error', { message: (err as Error).message });
+        socket.emit(QUEUE_EVENTS.ERROR, { message: (err as Error).message });
       }
     });
 
@@ -92,16 +99,16 @@ export function registerQueueSocket(server: Server): void {
     socket.on('queue:reconnect', async (payload: QueueEnterPayload) => {
       const { concertId } = payload ?? {};
       if (!concertId) {
-        socket.emit('queue:error', { message: 'concertId가 필요합니다' });
+        socket.emit(QUEUE_EVENTS.ERROR, { message: MSG_CONCERT_ID_REQUIRED });
         return;
       }
       try {
         const result = await handleReconnect(concertId, user.id);
         socket.join(`concert:${concertId}`);
         socket.data.concertId = concertId;
-        socket.emit('queue:position', result);
+        socket.emit(QUEUE_EVENTS.POSITION, result);
       } catch (err) {
-        socket.emit('queue:error', { message: (err as Error).message });
+        socket.emit(QUEUE_EVENTS.ERROR, { message: (err as Error).message });
       }
     });
 
