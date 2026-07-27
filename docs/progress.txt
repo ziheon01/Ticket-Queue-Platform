@@ -324,3 +324,35 @@ Known Issues (추후 수정 필요):
   신규: client/src/api/client.ts — ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY export
   수정: 3개 파일 전부 리터럴 대신 상수 참조로 교체, grep으로 잔여 리터럴 0건 확인
 다음: 최종 마무리 점검 (남은 미결 사항 없는지 확인) 또는 사용자 지시 대기
+[2026-07-28] 포트폴리오용 부하 테스트 스크립트 작성 + 실행 (typecheck 통과, 백엔드 로직 변경 없음).
+  배경: 포트폴리오 성과 지표(동시성 제어 정확성·응답 시간 분포)가 필요해 Docker(PostgreSQL 5434/Redis 6380)
+        기동 확인 후 로컬 부하 테스트 진행. Docker Desktop이 이 WSL distro에 미통합 상태였다가
+        사용자가 직접 실행 후 재확인함.
+  1) scripts/test-queue.ts 확장 (대기열 동시 진입)
+     - 기존 10명 고정 스크립트 → SCALES(기본 100,200)·REPEAT(기본 3) 파라미터화
+     - test1~testN@test.com 자동 upsert 시딩(Prisma), 응답시간 min/avg/p50/p95/p99/max 계측 추가
+     - 매 회차 시작 전 Redis waiting/admitted 키 초기화 → 반복 측정 정합성 확보
+     - admitNextUser(5초 주기 admission 워커)가 측정 도중 1명을 입장 처리해 ZCARD를 왜곡할 수 있는
+       레이스 컨디션을 발견 → "기대 ZCARD = 진입 성공 수 - 도중 admit된 수"로 보정하는 방식으로 해결
+     - 결과: 100명·200명 각 3회 모두 순번 중복 0건·ZCARD 완전 일치·로그인/진입 성공률 100%.
+       총 소요 시간 100명 평균 253.8ms → 200명 평균 522.1ms로 대략 선형 확장, P99도 213→452ms로 유사 배율
+  2) scripts/test-preemption.ts 신규 (Redis Lua 원자적 선점 검증)
+     - 재고 100개 전용 콘서트/구역을 idempotent 생성(제목으로 존재 확인 후 없으면 생성) + test1~200 재사용
+     - 실제 로그인 → 실제 POST /api/queue/:id/enter까지는 그대로 수행
+     - admission은 "5초당 1명, 이전 admit 해제 전엔 다음 admit 불가" 구조라 200명 동시 admit과
+       근본적으로 안 맞음(자연 흐름이면 최소 16분 소요) → 회차마다 admitted 키를 200명분 배치로
+       직접 세팅해 우회(콘솔 출력에 사유 명시)
+     - 2ms 간격 실시간 폴링으로 Redis stock 키 최솟값 관찰, 최종 재고 정합성(재고-성공수=최종재고),
+       이중 선점 여부, 실패 사유 분류(재고부족(-1)/중복선점(-2)/기타) 자동 검증
+     - 결과: 200명 vs 재고 100개 3회 반복 전부 성공 100/100, 실패 100(전량 재고부족·중복선점 사유,
+       기타 0건), 이중 선점 0건, 재고 음수 진입 0건, 최종 재고 0으로 완전 정합
+  3) pg 커넥션 풀 크기 실험 (src/utils/prisma.ts, .env)
+     - PrismaPg 어댑터에 `max: Number(process.env.DB_POOL_MAX ?? 10)` 옵션 추가(fallback 10 = 기존과 동일 동작)
+     - DB_POOL_MAX=30으로 재테스트했으나 평균 총 소요시간이 오히려 소폭 증가(1460→1524ms)하고
+       회차별 편차만 커짐(752~2149ms) → free -m 확인 결과 WSL 여유 메모리 466MB·swap 497MB 사용 중,
+       기존에 07-17/07-18 기록된 "VSCode 세션 겹칠 때 리소스 경합" 패턴과 동일한 환경 노이즈로 판단
+     - 결론: 이 환경에서 pool 크기는 병목이 아니었음(커넥션 대기가 dominant factor가 아니라는 뜻) →
+       사용자 요청으로 DB_POOL_MAX=10 원복 + 서버 재시작 완료. .env는 ts-node-dev watch 대상이 아니므로
+       설정 변경 시 수동 재시작 필요하다는 점 확인
+  미결: pool 크기 효과를 깨끗하게 재측정하려면 메모리 여유가 있는 환경(VSCode 등 종료 후)에서 재시도 필요
+다음: 사용자 지시 대기 (포트폴리오 정리 마무리 또는 추가 기능 작업)
