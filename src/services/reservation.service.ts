@@ -4,6 +4,7 @@ import * as reservationRepo from '../repositories/reservation.repository';
 import type { CreateReservationInput, TossWebhookBody } from '../dtos/reservation.dto';
 import { addReservationExpiryJob, removeReservationExpiryJob } from '../queues/workers/reservation.worker';
 import { io } from '../utils/socket';
+import logger from '../utils/logger';
 
 const LOCK_TTL = 300; // 5분
 const EXTEND_TTL = 300; // 연장 시 5분
@@ -44,22 +45,36 @@ export async function createReservation(userId: string, input: CreateReservation
     throw new AppError(409, '이미 진행 중인 예매가 있습니다');
   }
 
-  // 결제 레코드 생성
-  await reservationRepo.createPayment(reservation.id, totalPrice);
+  // preemptStock 성공 이후 구간: 실패 시 재고 유실 방지를 위해 전체를 try/catch로 감싼다
+  try {
+    // BullMQ 만료 delayed job 등록 (5분) — 안전망을 위험 구간(결제 레코드 생성)보다 먼저 켠다
+    await addReservationExpiryJob({
+      reservationId: reservation.id,
+      concertZoneId: input.concertZoneId,
+      userId,
+      concertId: zone.concertId,
+      quantity: input.quantity,
+    });
 
-  // admitted 키 삭제 (이중 예매 방지)
-  await deleteAdmittedKey(zone.concertId, userId);
+    // 결제 레코드 생성
+    await reservationRepo.createPayment(reservation.id, totalPrice);
 
-  // BullMQ 만료 delayed job 등록 (5분)
-  await addReservationExpiryJob({
-    reservationId: reservation.id,
-    concertZoneId: input.concertZoneId,
-    userId,
-    concertId: zone.concertId,
-    quantity: input.quantity,
-  });
+    // admitted 키 삭제 (이중 예매 방지)
+    await deleteAdmittedKey(zone.concertId, userId);
 
-  return { reservationId: reservation.id, totalPrice, remainSeconds: LOCK_TTL };
+    return { reservationId: reservation.id, totalPrice, remainSeconds: LOCK_TTL };
+  } catch (err) {
+    try {
+      await reservationRepo.releaseStock(input.concertZoneId, userId, input.quantity);
+      await reservationRepo.updateReservationStatus(reservation.id, 'CANCELLED');
+    } catch (releaseErr) {
+      logger.error(
+        { err: releaseErr, reservationId: reservation.id, concertZoneId: input.concertZoneId, userId },
+        '[createReservation] preemptStock 이후 실패 처리 중 releaseStock/상태 롤백 실패 — 재고 유실 가능성',
+      );
+    }
+    throw err;
+  }
 }
 
 export async function getMyReservations(userId: string) {
