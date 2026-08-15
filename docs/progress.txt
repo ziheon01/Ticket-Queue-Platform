@@ -355,4 +355,12 @@ Known Issues (추후 수정 필요):
        사용자 요청으로 DB_POOL_MAX=10 원복 + 서버 재시작 완료. .env는 ts-node-dev watch 대상이 아니므로
        설정 변경 시 수동 재시작 필요하다는 점 확인
   미결: pool 크기 효과를 깨끗하게 재측정하려면 메모리 여유가 있는 환경(VSCode 등 종료 후)에서 재시도 필요
-다음: 사용자 지시 대기 (포트폴리오 정리 마무리 또는 추가 기능 작업)
+[2026-08-15] 로컬 개발 환경 재세팅 완료 (신규 클론 기준, typecheck·전체 77/77 통과).
+  기능 수정: src/services/reservation.service.ts createReservation — preemptStock(Redis 재고 차감)
+        성공 이후 createPayment 등에서 실패할 경우 재고가 차감된 채로 영구 유실되는 문제 수정
+        → 위험 구간 전체를 try/catch로 감싸고 실패 시 releaseStock(재고 복구+lock 해제) +
+          예매 상태 CANCELLED 롤백 후 rethrow, addReservationExpiryJob(만료 안전망)을
+          createPayment보다 먼저 실행하도록 순서 변경, releaseStock 자체 실패 시 logger.error로 기록
+  미결: jest "did not exit" 원인(어떤 커넥션이 안 닫히는지) 미조사 — 매 실행마다 프로세스 kill로 우회 중
+        Toss 테스트 키·ngrok은 사용자가 나중에 직접 설정 예정
+다음: 사용자 지시 대기 (jest open handle 원인 조사 또는 추가 기능 작업)
