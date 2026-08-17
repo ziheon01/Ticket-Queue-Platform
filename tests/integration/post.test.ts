@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../src/index';
 import { prisma } from '../../src/utils/prisma';
+import { closeTestConnections } from '../testTeardown';
 
 const USER_EMAIL = 'post_user@test.com';
 const USER2_EMAIL = 'post_user2@test.com';
@@ -70,6 +71,7 @@ afterAll(async () => {
   await prisma.user.deleteMany({
     where: { email: { in: [USER_EMAIL, USER2_EMAIL, ADMIN_EMAIL] } },
   });
+  await closeTestConnections();
 });
 
 afterEach(async () => {

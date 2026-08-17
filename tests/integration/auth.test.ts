@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../src/index';
 import { prisma } from '../../src/utils/prisma';
+import { closeTestConnections } from '../testTeardown';
 
 const TEST_EMAIL = 'auth_test@test.com';
 const TEST_PASSWORD = 'password123';
@@ -14,7 +15,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.refreshToken.deleteMany({});
   await prisma.user.deleteMany({ where: { email: { contains: '@test.com' } } });
-  await prisma.$disconnect();
+  await closeTestConnections();
 });
 
 // ──────────────────────────────────────────

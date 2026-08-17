@@ -7,6 +7,7 @@ import { initSocket } from '../../src/utils/socket';
 import { registerQueueSocket } from '../../src/socket/queue.socket';
 import { prisma } from '../../src/utils/prisma';
 import { redis } from '../../src/utils/redis';
+import { closeTestConnections } from '../testTeardown';
 
 const USER_EMAIL = 'queue_user@test.com';
 const USER2_EMAIL = 'queue_user2@test.com';
@@ -17,6 +18,8 @@ let userId: string;
 let user2Token: string;
 let concertId: string;
 let serverPort: number;
+let httpServer: ReturnType<typeof createServer>;
+let ioServer: ReturnType<typeof initSocket>;
 
 function connectSocket(token: string): Promise<Socket> {
   return new Promise((resolve, reject) => {
@@ -96,8 +99,8 @@ beforeAll(async () => {
   concertId = concert.id;
 
   // Socket.io 테스트용 서버 시작
-  const httpServer = createServer(app);
-  const ioServer = initSocket(httpServer);
+  httpServer = createServer(app);
+  ioServer = initSocket(httpServer);
   registerQueueSocket(ioServer);
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
   serverPort = (httpServer.address() as AddressInfo).port;
@@ -119,8 +122,10 @@ afterAll(async () => {
   await prisma.user.deleteMany({
     where: { email: { in: [USER_EMAIL, USER2_EMAIL, 'queue_admin@test.com'] } },
   });
-  await prisma.$disconnect();
-  await redis.quit();
+
+  // 테스트용 Socket.io 서버 종료 (httpServer도 함께 닫힘)
+  await new Promise<void>((resolve) => ioServer.close(() => resolve()));
+  await closeTestConnections();
 });
 
 beforeEach(async () => {

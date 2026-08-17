@@ -16,8 +16,8 @@ const connection = {
 export const QUEUE_ADMISSION = 'queue-admission';
 export const QUEUE_DISCONNECT = 'queue-disconnect';
 
-const admissionQueue = new Queue(QUEUE_ADMISSION, { connection });
-const disconnectQueue = new Queue(QUEUE_DISCONNECT, { connection });
+export const admissionQueue = new Queue(QUEUE_ADMISSION, { connection });
+export const disconnectQueue = new Queue(QUEUE_DISCONNECT, { connection });
 
 // ── 입장 처리 Worker (5초 반복) ───────────────────────────
 

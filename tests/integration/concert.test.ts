@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../../src/index';
 import { prisma } from '../../src/utils/prisma';
 import { redis } from '../../src/utils/redis';
+import { closeTestConnections } from '../testTeardown';
 
 const ADMIN_EMAIL = 'concert_admin@test.com';
 const USER_EMAIL = 'concert_user@test.com';
@@ -55,8 +56,7 @@ afterAll(async () => {
   await prisma.concert.deleteMany({});
   await prisma.refreshToken.deleteMany({});
   await prisma.user.deleteMany({ where: { email: { in: [ADMIN_EMAIL, USER_EMAIL] } } });
-  await prisma.$disconnect();
-  await redis.quit();
+  await closeTestConnections();
 });
 
 // ──────────────────────────────────────────

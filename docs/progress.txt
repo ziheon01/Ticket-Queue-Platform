@@ -363,4 +363,30 @@ Known Issues (추후 수정 필요):
           createPayment보다 먼저 실행하도록 순서 변경, releaseStock 자체 실패 시 logger.error로 기록
   미결: jest "did not exit" 원인(어떤 커넥션이 안 닫히는지) 미조사 — 매 실행마다 프로세스 kill로 우회 중
         Toss 테스트 키·ngrok은 사용자가 나중에 직접 설정 예정
-다음: 사용자 지시 대기 (jest open handle 원인 조사 또는 추가 기능 작업)
+[2026-08-17] jest "did not exit" 원인 조사 + 해결 완료 (typecheck 통과, 전체 77/77 통과, 자연 종료 확인).
+  원인: src/index.ts가 concertStatus.queue.ts / reservation.worker.ts / queue.worker.ts를 정적 import하는데,
+        그 세 파일 모두 모듈 스코프에서 `new Queue(...)`(BullMQ)를 즉시 실행해 redis 커넥션을 맺음
+        (Worker 기동은 NODE_ENV!=='test'로 가드돼 있었지만 Queue 인스턴스 생성 자체는 가드 밖이라 테스트에서도 항상 발생).
+        어떤 통합 테스트도 이 Queue들을 close()하지 않아 jest worker 프로세스에 열린 핸들이 계속 쌓였고,
+        추가로 post.test.ts/reservation.test.ts는 prisma.$disconnect()도 누락돼 있었으며,
+        queue.test.ts는 beforeAll에서 만든 테스트용 httpServer/Socket.io 서버를 한 번도 close()하지 않고 있었음
+        (--detectOpenHandles 없이도 단일 파일 실행만으로 프로세스가 테스트 완료 후 90초+ 살아있는 것으로 재현 확인)
+  1차 시도(실패): jest.config.js에 setupFilesAfterEnv로 전역 afterAll을 등록해 redis/큐/prisma를 한번에 닫으려 했으나,
+        Jest는 setupFilesAfterEnv의 afterAll을 테스트 파일 자체의 afterAll보다 먼저(등록 순서대로) 실행한다는 걸
+        실측으로 확인 — reservation.test.ts/queue.test.ts가 "자기 afterAll에서 redis를 쓰려는 순간 이미 닫혀있어"
+        "Connection is closed"로 스위트 자체가 FAIL 처리됨. 전역 afterAll 방식은 폐기.
+  최종 수정:
+    1) src/queues/workers/reservation.worker.ts의 expiryQueue, queue.worker.ts의 admissionQueue/disconnectQueue를
+       export (기존 concertStatusQueue와 동일 패턴)
+    2) tests/testTeardown.ts 신규 — closeTestConnections()가 4개 BullMQ Queue.close() + redis.quit()
+       (redis.status !== 'end'일 때만) + prisma.$disconnect()를 순서대로 처리
+    3) 5개 통합 테스트 파일(auth/concert/post/queue/reservation) 전부 자기 afterAll의 **맨 마지막 줄**에
+       `await closeTestConnections();` 추가 — 자기 정리(redis.keys/prisma.deleteMany 등)가 끝난 뒤에만 닫히도록
+       순서를 보장 (전역 훅이 아니라 파일별 afterAll 안에 명시적으로 넣은 이유)
+    4) concert.test.ts/queue.test.ts에 있던 개별 prisma.$disconnect()/redis.quit() 호출은 제거하고
+       closeTestConnections()로 일원화 (중복 quit() 방지)
+    5) queue.test.ts: beforeAll 지역변수였던 httpServer/ioServer를 모듈 스코프로 끌어올려
+       afterAll에서 `ioServer.close()`로 정리 (httpServer도 함께 닫힘)
+  검증: npx jest 단독 실행 2회 반복 — 매번 5s~7s 내 exit code 0으로 자연 종료, "did not exit" 경고 재발 없음,
+        5 suites/77 tests 전부 통과. 더 이상 프로세스 kill로 우회할 필요 없음.
+다음: 사용자 지시 대기

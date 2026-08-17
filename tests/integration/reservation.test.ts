@@ -4,6 +4,7 @@ import { prisma } from '../../src/utils/prisma';
 import { redis } from '../../src/utils/redis';
 import { stockKey, lockKey } from '../../src/repositories/reservation.repository';
 import { admittedKey } from '../../src/repositories/queue.repository';
+import { closeTestConnections } from '../testTeardown';
 
 const USER_EMAIL = 'res_user@test.com';
 const USER2_EMAIL = 'res_user2@test.com';
@@ -109,6 +110,7 @@ afterAll(async () => {
   const queueKeys = await redis.keys(`queue:*`);
   if (keys.length > 0) await redis.del(...keys);
   if (queueKeys.length > 0) await redis.del(...queueKeys);
+  await closeTestConnections();
 });
 
 afterEach(async () => {

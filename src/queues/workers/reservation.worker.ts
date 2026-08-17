@@ -14,7 +14,7 @@ const connection = {
 
 export const QUEUE_RESERVATION_EXPIRY = 'reservation-expiry';
 
-const expiryQueue = new Queue(QUEUE_RESERVATION_EXPIRY, { connection });
+export const expiryQueue = new Queue(QUEUE_RESERVATION_EXPIRY, { connection });
 
 export interface ReservationExpiryPayload {
   reservationId: string;
